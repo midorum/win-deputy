@@ -1,7 +1,10 @@
 package midorum.win32.deputy.ui;
 
+import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.Objects;
+import java.util.Optional;
 
 final class Util {
     private Util() {
@@ -69,7 +72,7 @@ final class Util {
         c.gridx = 0; // first grid column
         c.weighty = 0.0; // do not fill all available height
         for (int i = 0; i < components.length; i++) {
-            if (i ==  0) {
+            if (i == 0) {
                 c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
                 c.weightx = 0.5; // fill all available width
             } else {
@@ -79,6 +82,36 @@ final class Util {
             container.add(components[i], c);
             c.gridx++; // increment grid column
         }
+    }
+
+    public static Optional<File> askFile(final File currentDirectory, final Component parent, final boolean shouldExist) {
+        final JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setCurrentDirectory(currentDirectory);
+        if (fileChooser.showOpenDialog(parent) == JFileChooser.APPROVE_OPTION) {
+            final File selectedFile = fileChooser.getSelectedFile();
+            if (shouldExist) {
+                if (selectedFile.exists()) return Optional.of(selectedFile);
+            } else {
+                if (!selectedFile.exists()
+                        || JOptionPane.showConfirmDialog(parent,
+                        "Do you want to replace existing file?") == JOptionPane.YES_OPTION) {
+                    return Optional.of(selectedFile);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<File> askNewFile(final File currentDirectory, final Component parent) {
+        return askFile(currentDirectory, parent, false);
+    }
+
+    public static Optional<File> askExistFile(final File currentDirectory, final Component parent) {
+        return askFile(currentDirectory, parent, true);
+    }
+
+    public static String getDefaultFileName() {
+        return "shots" + File.separator + "shot_" + System.currentTimeMillis();
     }
 
 }

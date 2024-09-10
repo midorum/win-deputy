@@ -12,11 +12,10 @@ public class ScenarioEditorForm extends JPanel implements Displayable {
 
     public ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
-        //Use the content pane's default BorderLayout. No need for setLayout(new BorderLayout());
-        setLayout(new BorderLayout());
-        add(new JLabel("Scenario path will be here"), BorderLayout.PAGE_START);
-        add(createScenarioPane(), BorderLayout.CENTER);
-        add(createButtonPane(), BorderLayout.PAGE_END);
+        Util.putComponentsToVerticalGrid(this,
+                new JLabel("Scenario path will be here"),
+                createScenarioPane(),
+                createButtonPane());
     }
 
     private JPanel createScenarioPane() {

@@ -1,10 +1,12 @@
 package midorum.win32.deputy.ui;
 
 import com.midorum.win32api.facade.Rectangle;
+import com.midorum.win32api.facade.Win32System;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -13,11 +15,19 @@ class CaptureWindow {
 
     public static final float OPACITY_DEFAULT = 0.55f;
     private final Consumer<Optional<Rectangle>> consumer;
+    private final boolean forDefaultScreenDevice;
     private final boolean doNotMoveOutOfScreenEdges;
 
-    public CaptureWindow(Consumer<Optional<Rectangle>> consumer) {
+    public CaptureWindow(Consumer<Optional<Rectangle>> consumer, boolean forDefaultScreenDevice) {
         this.consumer = consumer;
+        this.forDefaultScreenDevice = forDefaultScreenDevice;
         this.doNotMoveOutOfScreenEdges = true;
+    }
+
+    public CaptureWindow(Consumer<Optional<BufferedImage>> consumer) {
+        this(maybeRectangle -> maybeRectangle.ifPresentOrElse(rectangle ->
+                        consumer.accept(Optional.ofNullable(Win32System.getInstance().getScreenShotMaker().takeRectangle(rectangle))),
+                () -> consumer.accept(Optional.empty())), true);
     }
 
     public void display() {
@@ -40,7 +50,7 @@ class CaptureWindow {
             final Point locationOnScreen = frame.getLocationOnScreen();
             final Dimension size = frame.getSize();
             frame.dispose();
-            this.consumer.accept(Optional.of(new Rectangle(locationOnScreen.x, locationOnScreen.y, locationOnScreen.x + size.width, locationOnScreen.y + size.height)));
+            this.consumer.accept(Optional.of(getRectangle(locationOnScreen.x, locationOnScreen.y, locationOnScreen.x + size.width, locationOnScreen.y + size.height)));
         };
 
         final Action closeFrame = () -> {
@@ -57,6 +67,19 @@ class CaptureWindow {
         frame.addMouseWheelListener(mouseEventListener);
         frame.addKeyListener(new KeyEventListener(closeFrame, captureRegion, menu, colorHolder, opacityHolder, doNotMoveOutOfScreenEdges));
         return frame;
+    }
+
+    private Rectangle getRectangle(final int left, final int top, final int right, final int bottom) {
+        if (!this.forDefaultScreenDevice) return new Rectangle(left, top, right, bottom);
+        final Dimension awtResolution = Toolkit.getDefaultToolkit().getScreenSize();
+        final DisplayMode currentDisplayMode = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode();
+        final double xFactor = currentDisplayMode.getWidth() / awtResolution.getWidth();
+        final double yFactor = currentDisplayMode.getHeight() / awtResolution.getHeight();
+        return new Rectangle(
+                (int) (left * xFactor),
+                (int) (top * yFactor),
+                (int) (right * xFactor),
+                (int) (bottom * yFactor));
     }
 
     private JPopupMenu createMenu(final Action closeFrame, final Action captureRegion, final ColorHolder colorHolder, final OpacityHolder opacityHolder) {
