@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 class ActivityEditPane extends JPanel {
 
+    private final State state;
     private JTextField titleField;
     private JTextArea descriptionField;
     private List<CheckWrapperPane> checks;
@@ -17,24 +18,30 @@ class ActivityEditPane extends JPanel {
     private JPanel checksPane;
     private JPanel commandsPane;
 
-    ActivityEditPane(final Activity activity) {
+    ActivityEditPane(final Activity activity, final State state) {
+        this.state = state;
         checks = new ArrayList<>();
-        checks.addAll(activity.getChecks().stream().map(CheckEditPane::new).map(CheckWrapperPane::new).collect(Collectors.toCollection(ArrayList::new)));
+        checks.addAll(activity.getChecks().stream()
+                .map(check -> new CheckEditPane(check, state))
+                .map(CheckWrapperPane::new)
+                .collect(Collectors.toCollection(ArrayList::new)));
         commands = new ArrayList<>();
-        commands.addAll(activity.getCommands().stream().map(CommandEditPane::new).map(CommandWrapperPane::new).collect(Collectors.toCollection(ArrayList::new)));
+        commands.addAll(activity.getCommands().stream()
+                .map(command -> new CommandEditPane(command, state))
+                .map(CommandWrapperPane::new)
+                .collect(Collectors.toCollection(ArrayList::new)));
 
         compose(activity.getTitle(), activity.getDescription());
     }
 
-    ActivityEditPane() {
-        final String title = null;
-        final String description = null;
+    ActivityEditPane(final State state) {
+        this.state = state;
         checks = new ArrayList<>();
-        checks.add(new CheckWrapperPane());
+        checks.add(new CheckWrapperPane(state));
         commands = new ArrayList<>();
-        commands.add(new CommandWrapperPane());
+        commands.add(new CommandWrapperPane(state));
 
-        compose(title, description);
+        compose(null, null);
     }
 
     private void compose(final String title, final String description) {
@@ -52,7 +59,13 @@ class ActivityEditPane extends JPanel {
 
     private void addCheckAbove(final CheckWrapperPane checkPane) {
         final int currentIndex = checks.indexOf(checkPane);
-        checks.add(currentIndex, new CheckWrapperPane());
+        checks.add(currentIndex, new CheckWrapperPane(state));
+        repaintChecks();
+    }
+
+    private void addCheckBelow(final CheckWrapperPane checkPane) {
+        final int currentIndex = checks.indexOf(checkPane);
+        checks.add(currentIndex + 1, new CheckWrapperPane(state));
         repaintChecks();
     }
 
@@ -89,7 +102,13 @@ class ActivityEditPane extends JPanel {
 
     private void addCommandAbove(final CommandWrapperPane commandPane) {
         final int currentIndex = commands.indexOf(commandPane);
-        commands.add(currentIndex, new CommandWrapperPane());
+        commands.add(currentIndex, new CommandWrapperPane(state));
+        repaintCommands();
+    }
+
+    private void addCommandBelow(final CommandWrapperPane commandPane) {
+        final int currentIndex = commands.indexOf(commandPane);
+        commands.add(currentIndex + 1, new CommandWrapperPane(state));
         repaintCommands();
     }
 
@@ -142,8 +161,8 @@ class ActivityEditPane extends JPanel {
             Util.putComponentsToVerticalGrid(this, createButtonsPane(), checkEditPane);
         }
 
-        public CheckWrapperPane() {
-            this(new CheckEditPane());
+        public CheckWrapperPane(final State state) {
+            this(new CheckEditPane(state));
         }
 
         private JPanel createButtonsPane() {
@@ -153,14 +172,14 @@ class ActivityEditPane extends JPanel {
             panel.add(new JLabel("Check"));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
-            panel.add(createAddAboveButton());
+            panel.add(createAddButton());
             panel.add(createDeleteButton());
             return panel;
         }
 
-        private Button createAddAboveButton() {
-            final Button btn = new Button("+^");
-            btn.addActionListener(e -> addCheckAbove(this));
+        private Button createAddButton() {
+            final Button btn = new Button("+");
+            btn.addActionListener(e -> addCheckBelow(this));
             return btn;
         }
 
@@ -194,8 +213,8 @@ class ActivityEditPane extends JPanel {
             Util.putComponentsToVerticalGrid(this, createButtonsPane(), commandEditPane);
         }
 
-        public CommandWrapperPane() {
-            this(new CommandEditPane());
+        public CommandWrapperPane(final State state) {
+            this(new CommandEditPane(state));
         }
 
         private JPanel createButtonsPane() {
@@ -205,14 +224,14 @@ class ActivityEditPane extends JPanel {
             panel.add(new JLabel("Command"));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
-            panel.add(createAddAboveButton());
+            panel.add(createAddButton());
             panel.add(createDeleteButton());
             return panel;
         }
 
-        private Button createAddAboveButton() {
-            final Button btn = new Button("+^");
-            btn.addActionListener(e -> addCommandAbove(this));
+        private Button createAddButton() {
+            final Button btn = new Button("+");
+            btn.addActionListener(e -> addCommandBelow(this));
             return btn;
         }
 

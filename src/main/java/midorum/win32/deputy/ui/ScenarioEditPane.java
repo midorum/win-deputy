@@ -10,44 +10,57 @@ import java.util.stream.Collectors;
 
 class ScenarioEditPane extends JPanel {
 
+    private final State state;
     private JTextField titleField;
     private JTextArea descriptionField;
     private JPanel gridPane;
     private List<ActivityWrapperPane> activities;
 
-    ScenarioEditPane(final Scenario scenario) {
+    ScenarioEditPane(final Scenario scenario, final State state) {
+        this.state = state;
         activities = new ArrayList<>();
-        activities.addAll(scenario.getActivities().stream().map(ActivityEditPane::new).map(ActivityWrapperPane::new).collect(Collectors.toCollection(ArrayList::new)));
+        activities.addAll(scenario.getActivities().stream()
+                .map(activity -> new ActivityEditPane(activity, state))
+                .map(ActivityWrapperPane::new)
+                .collect(Collectors.toCollection(ArrayList::new)));
 
         compose(scenario.getTitle(), scenario.getDescription());
     }
 
-    ScenarioEditPane() {
-        final String title = null;
-        final String description = null;
+    ScenarioEditPane(final State state) {
+        this.state = state;
         activities = new ArrayList<>();
-        activities.add(new ActivityWrapperPane());
+        activities.add(new ActivityWrapperPane(state));
 
-        compose(title, description);
+        compose(null, null);
     }
 
     private void compose(final String title, final String description) {
-        final JLabel titleLabel = new JLabel("Title");
         titleField = new JTextField(title);
-        final JLabel descriptionLabel = new JLabel("Description");
         descriptionField = new JTextArea(description);
-        gridPane = new JPanel(new GridBagLayout());
+        gridPane = new JPanel();
         final JScrollPane scrollPane = new JScrollPane(gridPane);
         scrollPane.setWheelScrollingEnabled(true);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 //        scrollPane.getViewport().addChangeListener(e -> System.out.println("Viewport changed: " + e));
-        Util.putComponentsToVerticalGrid(this, titleLabel, titleField, descriptionLabel, descriptionField, scrollPane);
+        Util.putComponentsToVerticalGrid(this,
+                new JLabel("Title"),
+                titleField,
+                new JLabel("Description"),
+                descriptionField,
+                scrollPane);
         fillActivitiesGrid();
     }
 
     private void addActivityAbove(final ActivityWrapperPane activityPane) {
         final int currentIndex = activities.indexOf(activityPane);
-        activities.add(currentIndex, new ActivityWrapperPane());
+        activities.add(currentIndex, new ActivityWrapperPane(state));
+        repaintActivities();
+    }
+
+    private void addActivityBelow(final ActivityWrapperPane activityPane) {
+        final int currentIndex = activities.indexOf(activityPane);
+        activities.add(currentIndex + 1, new ActivityWrapperPane(state));
         repaintActivities();
     }
 
@@ -96,8 +109,8 @@ class ScenarioEditPane extends JPanel {
             Util.putComponentsToVerticalGrid(this, createButtonsPane(), activityEditPane);
         }
 
-        public ActivityWrapperPane() {
-            this(new ActivityEditPane());
+        public ActivityWrapperPane(final State state) {
+            this(new ActivityEditPane(state));
         }
 
         private JPanel createButtonsPane() {
@@ -107,14 +120,14 @@ class ScenarioEditPane extends JPanel {
             panel.add(new JLabel("Activity"));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
-            panel.add(createAddAboveButton());
+            panel.add(createAddButton());
             panel.add(createDeleteButton());
             return panel;
         }
 
-        private Button createAddAboveButton() {
-            final Button btn = new Button("+^");
-            btn.addActionListener(e -> addActivityAbove(this));
+        private Button createAddButton() {
+            final Button btn = new Button("+");
+            btn.addActionListener(e -> addActivityBelow(this));
             return btn;
         }
 

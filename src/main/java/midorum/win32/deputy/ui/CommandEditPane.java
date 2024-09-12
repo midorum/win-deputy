@@ -10,25 +10,23 @@ import java.util.List;
 
 class CommandEditPane extends JPanel {
 
+    private final State state;
     private final ArrayList<CommandDataTypePane> commandDataList;
     private final JPanel commandDataPane;
     private final JComboBox<CommandType> commandTypeComboBox;
 
-    public CommandEditPane() {
-        setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+    public CommandEditPane(final State state) {
+        this.state = state;
         commandDataList = new ArrayList<>();
         commandTypeComboBox = createCommandTypeComboBox();
-        commandTypeComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         commandTypeComboBox.setSelectedIndex(-1);
-        add(commandTypeComboBox);
         commandDataPane = new JPanel();
-        commandDataPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-        commandDataPane.setLayout(new BoxLayout(commandDataPane, BoxLayout.PAGE_AXIS));
-        add(commandDataPane);
+        Util.putComponentsToVerticalGrid(this, commandTypeComboBox, commandDataPane);
+        this.setBorder(BorderFactory.createLineBorder(Color.RED));
     }
 
-    public CommandEditPane(final Command command) {
-        this();
+    public CommandEditPane(final Command command, final State state) {
+        this(state);
         commandTypeComboBox.setSelectedItem(command.getType());
         command.getData().forEach((commandDataType, s) -> commandDataList.add(new CommandDataTypePane(commandDataType, s, getAvailableDataTypes(command.getType()))));
         commandDataList.forEach(commandDataPane::add);
@@ -64,6 +62,12 @@ class CommandEditPane extends JPanel {
         repaintCommandData();
     }
 
+    private void addDataBelow(final CommandDataTypePane commandDataTypePane) {
+        final int currentIndex = commandDataList.indexOf(commandDataTypePane);
+        commandDataList.add(currentIndex + 1, new CommandDataTypePane(commandDataTypePane.getAvailableDataTypes()));
+        repaintCommandData();
+    }
+
     private void deleteData(final CommandDataTypePane checkDataTypePane) {
         if (commandDataList.size() == 1) {
             JOptionPane.showMessageDialog(this, "You cannot delete last check data");
@@ -71,7 +75,6 @@ class CommandEditPane extends JPanel {
         }
         commandDataList.remove(checkDataTypePane);
         repaintCommandData();
-
     }
 
     private void moveDataUp(final CommandDataTypePane checkDataTypePane) {
@@ -92,7 +95,7 @@ class CommandEditPane extends JPanel {
 
     private void repaintCommandData() {
         commandDataPane.removeAll();
-        commandDataList.forEach(commandDataPane::add);
+        Util.putComponentsToVerticalGrid(commandDataPane, -1, commandDataList.toArray(Component[]::new));
         revalidate();
     }
 
@@ -102,12 +105,7 @@ class CommandEditPane extends JPanel {
 
         public CommandDataTypePane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
             this.availableDataTypes = availableDataTypes;
-            setAlignmentX(Component.LEFT_ALIGNMENT);
-            setLayout(new BorderLayout());
-            final JPanel buttonPane = createButtonPane();
-            add(buttonPane, BorderLayout.PAGE_START);
-            final JPanel dataPane = createDataPane(commandDataType, dataValue, availableDataTypes);
-            add(dataPane, BorderLayout.CENTER);
+            Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(commandDataType, dataValue, availableDataTypes));
         }
 
         public CommandDataTypePane(final List<CommandDataType> availableDataTypes) {
@@ -120,52 +118,49 @@ class CommandEditPane extends JPanel {
 
         private JPanel createDataPane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
             final JPanel dataPane = new JPanel();
-            dataPane.setLayout(new BoxLayout(dataPane, BoxLayout.LINE_AXIS));
             final JComboBox<CommandDataType> dataTypeComboBox = new JComboBox<>(availableDataTypes.toArray(new CommandDataType[]{}));
-            Util.retainComponentSize(dataTypeComboBox);
             if (commandDataType != null) {
                 dataTypeComboBox.setSelectedItem(commandDataType);
             } else {
                 dataTypeComboBox.setSelectedIndex(-1);
             }
-            dataPane.add(dataTypeComboBox);
             final JTextField valueField = new JTextField(dataValue);
-            Util.retainComponentSize(valueField);
-            dataPane.add(valueField);
+            Util.putComponentsToHorizontalGrid(dataPane, dataTypeComboBox, valueField);
+            dataPane.setBorder(BorderFactory.createLineBorder(Color.GREEN));
             return dataPane;
         }
 
         private JPanel createButtonPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             panel.setSize(panel.getPreferredSize());
-//            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
+            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
-            panel.add(createAddAboveButton());
+            panel.add(createAddButton());
             panel.add(createDeleteButton());
             return panel;
         }
 
-        private Button createAddAboveButton() {
-            final Button btn = new Button("Add above");
-            btn.addActionListener(e -> addDataAbove(this));
+        private Button createAddButton() {
+            final Button btn = new Button("+");
+            btn.addActionListener(e -> addDataBelow(this));
             return btn;
         }
 
         private Button createDeleteButton() {
-            final Button btn = new Button("Delete");
+            final Button btn = new Button("x");
             btn.addActionListener(e -> deleteData(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
-            final Button btn = new Button("Move up");
+            final Button btn = new Button("^");
             btn.addActionListener(e -> moveDataUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
-            final Button btn = new Button("Move down");
+            final Button btn = new Button("v");
             btn.addActionListener(e -> moveDataDown(this));
             return btn;
         }

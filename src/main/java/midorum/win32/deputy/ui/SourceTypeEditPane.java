@@ -1,55 +1,57 @@
 package midorum.win32.deputy.ui;
 
-import com.midorum.win32api.facade.Rectangle;
-import com.midorum.win32api.facade.Win32System;
 import midorum.win32.deputy.model.SourceType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 class SourceTypeEditPane extends JPanel {
 
-    public SourceTypeEditPane(final List<SourceType> sourceTypes, final String dataValue) {
+    private final State state;
+    private final Component valueField;
+    private final Logger logger = LogManager.getLogger(this);
+
+    public SourceTypeEditPane(final List<SourceType> sourceTypes, final String dataValue, final State state) {
+        this.state = state;
         final List<Component> components = new ArrayList<>();
-        if (sourceTypes.contains(SourceType.userInput)) {
-            final JTextField valueField = new JTextField(dataValue);
-            components.add(valueField);
-        } else {
-            final JLabel label = new JLabel(dataValue);
-            components.add(label);
-        }
+        this.valueField = sourceTypes.contains(SourceType.userInput) ? new JTextField(dataValue) : new JLabel(dataValue);
+        components.add(valueField);
         if (sourceTypes.contains(SourceType.pickFile)) {
             final Button btn = new Button("...");
-            btn.addActionListener(e -> System.out.println(e));
+            btn.addActionListener(event -> Util.pickFile(state, this, file -> setValueField(file.getName())));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.makeShot)) {
             final Button btn = new Button("[o]");
-            btn.addActionListener(e -> new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image ->
-                            Util.askNewFile(null, this).ifPresentOrElse(file -> {
-                                final String fileName = file.getName();
-                                final String filePath = file.getParentFile().getAbsolutePath();
-                                saveImage(image, filePath, fileName);
-                            }, () -> saveImage(image, null, Util.getDefaultFileName())),
-                    () -> JOptionPane.showMessageDialog(this, "No rectangle was captured"))).display());
+            btn.addActionListener(event -> Util.captureAndSaveRegion(this.state, this,
+                    savedFile -> setValueField(savedFile.getName()),
+                    e -> {
+                        logger.error(e.getMessage(), e);
+                        JOptionPane.showMessageDialog(this, e.getMessage());
+                    }));
             components.add(btn);
         }
         Util.putComponentsToHorizontalGridStretchFirst(this, components.toArray(Component[]::new));
     }
 
-    private void saveImage(final BufferedImage bufferedImage, final String path, final String name) {
-        try {
-            new FileServiceProvider()
-                    .withFile(path, name, "png")
-                    .writeImage(bufferedImage);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "error while saving image:" + e.getMessage());
+    private void setValueField(final String value) {
+        switch (valueField) {
+            case JTextField f -> f.setText(value);
+            case JLabel f -> f.setText(value);
+            default -> throw new IllegalArgumentException("Unrecognized component");
         }
     }
+
+    private String getDataValue() {
+        return switch (valueField) {
+            case JTextField f -> f.getText();
+            case JLabel f -> f.getText();
+            default -> throw new IllegalArgumentException("Unrecognized component");
+        };
+    }
+
 }

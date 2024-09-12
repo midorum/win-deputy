@@ -1,25 +1,26 @@
 package midorum.win32.deputy.ui;
 
-import midorum.win32.deputy.model.Scenario;
-
 import javax.swing.*;
 import java.awt.*;
 
-public class ScenarioEditorForm extends JPanel implements Displayable {
+ class ScenarioEditorForm extends JPanel implements Displayable {
 
     private static final int PANE_MARGIN = 10;
     private final TaskDispatcher taskDispatcher;
+    private final State state;
 
-    public ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
+     ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
+        this.state = new State();
         Util.putComponentsToVerticalGrid(this,
+                1,
                 new JLabel("Scenario path will be here"),
                 createScenarioPane(),
                 createButtonPane());
     }
 
     private JPanel createScenarioPane() {
-        final JPanel scenarioPane = new ScenarioEditPane();
+        final JPanel scenarioPane = new ScenarioEditPane(state);
         scenarioPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
         return scenarioPane;
     }

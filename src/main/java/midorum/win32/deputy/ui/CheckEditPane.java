@@ -11,22 +11,23 @@ import java.util.List;
 
 class CheckEditPane extends JPanel {
 
+    private final State state;
     private final ArrayList<CheckDataTypePane> checkDataList;
     private final JPanel checkDataPane;
     private final JComboBox<CheckType> checkTypeComboBox;
 
-    CheckEditPane() {
+    CheckEditPane(final State state) {
+        this.state = state;
         checkDataList = new ArrayList<>();
 //        setBorder(BorderFactory.createLineBorder(Color.CYAN));
         checkTypeComboBox = createCheckTypeComboBox();
         checkTypeComboBox.setSelectedIndex(-1);
         checkDataPane = new JPanel();
-        checkDataPane.setLayout(new BoxLayout(checkDataPane, BoxLayout.PAGE_AXIS));
         Util.putComponentsToVerticalGrid(this, checkTypeComboBox, checkDataPane);
     }
 
-    CheckEditPane(final Check check) {
-        this();
+    CheckEditPane(final Check check, final State state) {
+        this(state);
         checkTypeComboBox.setSelectedItem(check.getType());
         check.getData().forEach((checkDataType, s) -> checkDataList.add(new CheckDataTypePane(checkDataType, s, getAvailableDataTypes(check.getType()))));
         checkDataList.forEach(checkDataPane::add);
@@ -59,6 +60,12 @@ class CheckEditPane extends JPanel {
     private void addDataAbove(final CheckDataTypePane checkDataTypePane) {
         final int currentIndex = checkDataList.indexOf(checkDataTypePane);
         checkDataList.add(currentIndex, new CheckDataTypePane(checkDataTypePane.getAvailableDataTypes()));
+        repaintCheckData();
+    }
+
+    private void addDataBelow(final CheckDataTypePane checkDataTypePane) {
+        final int currentIndex = checkDataList.indexOf(checkDataTypePane);
+        checkDataList.add(currentIndex + 1, new CheckDataTypePane(checkDataTypePane.getAvailableDataTypes()));
         repaintCheckData();
     }
 
@@ -96,12 +103,13 @@ class CheckEditPane extends JPanel {
 
     private class CheckDataTypePane extends JPanel {
 
-        final List<CheckDataType> availableDataTypes;
-        private JPanel sourceTypeEditPane;
+        final private List<CheckDataType> availableDataTypes;
+        final private JPanel sourceTypeEditPane;
 
         public CheckDataTypePane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
             this.availableDataTypes = availableDataTypes;
-            Util.putComponentsToVerticalGrid(this, createButtonPane(), createDataPane(checkDataType, dataValue, availableDataTypes));
+            this.sourceTypeEditPane = new JPanel();
+            Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(checkDataType, dataValue, availableDataTypes));
         }
 
         public CheckDataTypePane(final List<CheckDataType> availableDataTypes) {
@@ -114,12 +122,10 @@ class CheckEditPane extends JPanel {
 
         private JPanel createDataPane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
             final JPanel dataPane = new JPanel();
-//            dataPane.setBorder(BorderFactory.createLineBorder(Color.BLUE));
-            final JComboBox<CheckDataType> dataTypeComboBox = createDataTypeComboBox(checkDataType, availableDataTypes);
-            sourceTypeEditPane = new JPanel();
-//            sourceTypeEditPane.setBorder(BorderFactory.createLineBorder(Color.GREEN));
-            Util.putComponentsToHorizontalGrid(dataPane, dataTypeComboBox, sourceTypeEditPane);
-            if(checkDataType != null) {
+            Util.putComponentsToHorizontalGrid(dataPane,
+                    createDataTypeComboBox(checkDataType, availableDataTypes),
+                    sourceTypeEditPane);
+            if (checkDataType != null) {
                 fillSourceTypeEditGrid(checkDataType, dataValue);
             }
             return dataPane;
@@ -140,29 +146,29 @@ class CheckEditPane extends JPanel {
         }
 
         private void repaintSourceTypeEditPane(final CheckDataType checkDataType) {
-           sourceTypeEditPane.removeAll();
+            sourceTypeEditPane.removeAll();
             fillSourceTypeEditGrid(checkDataType, null);
             revalidate();
         }
 
         private void fillSourceTypeEditGrid(final CheckDataType checkDataType, final String dataValue) {
-            Util.putComponentsToHorizontalGrid(sourceTypeEditPane, new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue));
+            Util.putComponentsToHorizontalGrid(sourceTypeEditPane, new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue, state));
         }
 
         private JPanel createButtonPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             panel.setSize(panel.getPreferredSize());
-//            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
+            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
-            panel.add(createAddAboveButton());
+            panel.add(createAddButton());
             panel.add(createDeleteButton());
             return panel;
         }
 
-        private Button createAddAboveButton() {
-            final Button btn = new Button("+^");
-            btn.addActionListener(e -> addDataAbove(this));
+        private Button createAddButton() {
+            final Button btn = new Button("+");
+            btn.addActionListener(e -> addDataBelow(this));
             return btn;
         }
 

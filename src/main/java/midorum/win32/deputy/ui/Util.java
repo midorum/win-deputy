@@ -1,10 +1,16 @@
 package midorum.win32.deputy.ui;
 
+import midorum.win32.deputy.common.Either;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 final class Util {
     private Util() {
@@ -23,25 +29,30 @@ final class Util {
         return -1;
     }
 
-
-    public static void putComponentsToVerticalGrid(final Container container, final Component... components) {
+    public static void putComponentsToVerticalGrid(final Container container, int stretch, final Component... components) {
         if (!(container.getLayout() instanceof GridBagLayout)) {
             container.setLayout(new GridBagLayout());
         }
         final GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
         c.anchor = GridBagConstraints.FIRST_LINE_START; // align to the top left
-        c.gridy = 0; // first grid row
         c.weightx = 0.5; // fill all available width
-        c.weighty = 0.0; // do not fill all available height
+        c.gridy = 0; // first grid row
+        final int stretchIndex = stretch == Integer.MAX_VALUE ? components.length - 1 : stretch;
         for (int i = 0; i < components.length; i++) {
-            if (i == components.length - 1) {
-                c.fill = GridBagConstraints.BOTH; // resize component in both directions <<<<<<<
+            if (i == stretchIndex) {
+                c.fill = GridBagConstraints.BOTH; // resize component in both directions
                 c.weighty = 0.5; // fill all available height
+            } else {
+                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
+                c.weighty = 0.0; // do not fill all available height
             }
             container.add(components[i], c);
             c.gridy++; // increment grid row
         }
+    }
+
+    public static void putComponentsToVerticalGrid(final Container container, final Component... components) {
+        putComponentsToVerticalGrid(container, Integer.MAX_VALUE, components);
     }
 
     public static void putComponentsToHorizontalGrid(final Container container, final Component... components) {
@@ -94,12 +105,21 @@ final class Util {
             } else {
                 if (!selectedFile.exists()
                         || JOptionPane.showConfirmDialog(parent,
-                        "Do you want to replace existing file?") == JOptionPane.YES_OPTION) {
-                    return Optional.of(selectedFile);
+                        "Do you want to replace existing file?",
+                        "Warning",
+                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    return Optional.of(new File(getWorkingDirectoryForPath(selectedFile.getParentFile()), selectedFile.getName()));
+                } else {
+                    return Optional.of(new File(getWorkingDirectoryForPath(selectedFile.getParentFile()), getDefaultFileName()));
                 }
             }
         }
         return Optional.empty();
+    }
+
+    public static File getWorkingDirectoryForPath(final File file) {
+        final String path = file.getAbsolutePath();
+        return path.endsWith("shots") ? file.getParentFile() : file;
     }
 
     public static Optional<File> askNewFile(final File currentDirectory, final Component parent) {
@@ -110,8 +130,70 @@ final class Util {
         return askFile(currentDirectory, parent, true);
     }
 
+    public static String getPathForImages(final File workingDirectory) {
+        return workingDirectory != null ? workingDirectory.getAbsolutePath() + File.separator + "shots" : "shots";
+    }
+
     public static String getDefaultFileName() {
-        return "shots" + File.separator + "shot_" + System.currentTimeMillis();
+        return "_" + System.currentTimeMillis();
+    }
+
+    public static void captureAndSaveRegion(final State state,
+                                            final Component parent,
+                                            final Consumer<File> successFileConsumer,
+                                            final Consumer<IOException> errorConsumer) {
+        new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image ->
+                        askNewFile(state.getWorkingDirectory(), parent).ifPresent(file -> {
+                            final File workingDirectory = state.getWorkingDirectory();
+                            final File selectedDirectory = file.getParentFile();
+                            if (workingDirectory == null) {
+                                state.setWorkingDirectory(selectedDirectory);
+                            } else if (!Objects.equals(workingDirectory, selectedDirectory)) {
+                                if (JOptionPane.showConfirmDialog(parent,
+                                        "Your selected directory does not match current working directory." +
+                                                " It is not recommended to change working directory." +
+                                                " Would you like to change working directory anyway?",
+                                        "Warning",
+                                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                                    state.setWorkingDirectory(selectedDirectory);
+                                }
+                            }
+                            saveImage(image, getPathForImages(state.getWorkingDirectory()), file.getName())
+                                    .consumeOrHandleError(successFileConsumer, errorConsumer);
+                        }),
+                () -> JOptionPane.showMessageDialog(parent, "No rectangle was captured"))).display();
+    }
+
+    private static Either<File, IOException> saveImage(final BufferedImage bufferedImage, final String path, final String name) {
+        return Either.value(() -> new FileServiceProvider()
+                        .withFile(path, name, "png")
+                        .writeImage(bufferedImage))
+                .orException(() -> new IOException("error while saving image: " + path + File.separator + name));
+    }
+
+    public static void pickFile(final State state, final Component parent, final Consumer<File> successFileConsumer) {
+        final BiConsumer<File, File> updateStateAndDoJob = (workingDirectory, acceptedFile) -> {
+            state.setWorkingDirectory(workingDirectory);
+            successFileConsumer.accept(acceptedFile);
+        };
+        Util.askExistFile(state.getWorkingDirectory(), parent).ifPresent(file -> {
+            final File workingDirectory = state.getWorkingDirectory();
+            final File selectedWorkingDirectory = Util.getWorkingDirectoryForPath(file.getParentFile());
+            if (workingDirectory == null) {
+                updateStateAndDoJob.accept(selectedWorkingDirectory, file);
+                return;
+            }
+            if (Objects.equals(workingDirectory, selectedWorkingDirectory)) {
+                successFileConsumer.accept(file);
+            } else if (JOptionPane.showConfirmDialog(parent,
+                    "Your selected directory does not match current working directory." +
+                            " It is not recommended to change working directory." +
+                            " Would you like to change working directory anyway?",
+                    "Warning",
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                updateStateAndDoJob.accept(selectedWorkingDirectory, file);
+            }
+        });
     }
 
 }

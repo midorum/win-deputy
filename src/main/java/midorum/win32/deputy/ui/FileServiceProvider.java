@@ -36,8 +36,9 @@ class FileServiceProvider {
             if (!file.mkdirs()) throw new IOException("Cannot create directories: " + file.getAbsolutePath());
         }
 
-        public boolean writeImage(final BufferedImage image) throws IOException {
-            return ImageIO.write(image, format, file);
+        public File writeImage(final BufferedImage image) throws IOException {
+            ImageIO.write(image, format, file);
+            return file;
         }
 
         public String getFileName() {
