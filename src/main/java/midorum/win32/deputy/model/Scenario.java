@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * Именованный список активностей
- * 
+ *
  * @author midorum
  */
 public class Scenario {
@@ -24,6 +24,14 @@ public class Scenario {
         this.data = data;
     }
 
+    public Scenario() {
+        this.title = null;
+        this.description = null;
+        this.activities = null;
+        this.type = null;
+        this.data = null;
+    }
+
     public String getTitle() {
         return this.title;
     }
@@ -40,19 +48,19 @@ public class Scenario {
         return this.type;
     }
 
-    public Map<ScenarioDataType,String> getData() {
+    public Map<ScenarioDataType, String> getData() {
         return this.data;
     }
 
     @Override
     public String toString() {
         return "{" +
-            " title='" + getTitle() + "'" +
-            ", description='" + getDescription() + "'" +
-            ", activities='" + getActivities() + "'" +
-            ", type='" + getType() + "'" +
-            ", data='" + getData() + "'" +
-            "}";
+                " title='" + getTitle() + "'" +
+                ", description='" + getDescription() + "'" +
+                ", activities='" + getActivities() + "'" +
+                ", type='" + getType() + "'" +
+                ", data='" + getData() + "'" +
+                "}";
     }
 
 }

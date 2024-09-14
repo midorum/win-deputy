@@ -20,7 +20,7 @@ public class MainForm implements TaskDispatcher {
         container.add(scenarioViewerForm);
         container.add(scenarioEditorForm);
         scenarioEditorForm.setVisible(false);
-        this.frame.setPreferredSize(new Dimension(500, 500));
+        this.frame.setPreferredSize(new Dimension(700, 500));
     }
 
     public static void main(String[] args) {

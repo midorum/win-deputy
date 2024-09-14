@@ -17,6 +17,12 @@ public class Waiting {
         this.timeout = timeout;
     }
 
+    public Waiting() {
+        this.description = null;
+        this.checks = null;
+        this.timeout = 0L;
+    }
+
     public String getDescription() {
         return this.description;
     }

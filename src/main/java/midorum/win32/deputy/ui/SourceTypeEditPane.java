@@ -1,7 +1,7 @@
 package midorum.win32.deputy.ui;
 
+import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.Win32System;
-import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
 import midorum.win32.deputy.model.SourceType;
 import org.apache.logging.log4j.LogManager;
@@ -13,15 +13,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-class SourceTypeEditPane extends JPanel {
+class SourceTypeEditPane extends JPanel implements Supplier<String> {
 
     private final State state;
     private final Component valueField;
     private final Logger logger = LogManager.getLogger(this);
+    private final Win32Utilities win32Utilities;
 
     public SourceTypeEditPane(final List<SourceType> sourceTypes, final String dataValue, final State state) {
         this.state = state;
+        this.win32Utilities = new Win32Utilities(this);
         final List<Component> components = new ArrayList<>();
         this.valueField = sourceTypes.contains(SourceType.userInput) ? new JTextField(dataValue)
                 : sourceTypes.contains(SourceType.keyboardLayoutChoice) ? createKeyboardLayoutComboBox(dataValue)
@@ -31,20 +34,48 @@ class SourceTypeEditPane extends JPanel {
         components.add(valueField);
         if (sourceTypes.contains(SourceType.pickFile)) {
             final Button btn = new Button("...");
-            btn.addActionListener(event -> Util.pickFile(state, this, file -> setValueField(file.getName())));
+            btn.addActionListener(event -> win32Utilities.pickFile(state,
+                    file -> setValueField(file.getName())));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.makeShot)) {
             final Button btn = new Button("[o]");
-            btn.addActionListener(event -> Util.captureAndSaveRegion(this.state, this,
-                    savedFile -> setValueField(savedFile.getName()),
-                    e -> {
-                        logger.error(e.getMessage(), e);
-                        JOptionPane.showMessageDialog(this, e.getMessage());
-                    }));
+            btn.addActionListener(event -> win32Utilities.captureAndSaveRegion(state,
+                    savedFile -> setValueField(savedFile.getName())));
             components.add(btn);
         }
-        Util.putComponentsToHorizontalGridStretchFirst(this, components.toArray(Component[]::new));
+        if (sourceTypes.contains(SourceType.pickAbsolutePoint)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> win32Utilities.pickAbsolutePoint(pointInt ->
+                    setValueField(Util.pointToString(pointInt))));
+            components.add(btn);
+        }
+        if (sourceTypes.contains(SourceType.pickWindowProcessName)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> win32Utilities.pickWindowProcessName(this::setValueField));
+            components.add(btn);
+        }
+        if (sourceTypes.contains(SourceType.pickWindowClassName)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> win32Utilities.pickWindowClassName(this::setValueField));
+            components.add(btn);
+        }
+        if (sourceTypes.contains(SourceType.pickWindowTitle)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> win32Utilities.pickWindowTitle(this::setValueField));
+            components.add(btn);
+        }
+        if (sourceTypes.contains(SourceType.pickWindowStyles)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> win32Utilities.pickWindowStyles(this::setValueField));
+            components.add(btn);
+        }
+        if (sourceTypes.contains(SourceType.pickWindowExStyles)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> win32Utilities.pickWindowExStyles(this::setValueField));
+            components.add(btn);
+        }
+        Util.putComponentsToHorizontalGrid(this, 0, components.toArray(Component[]::new));
     }
 
     private Component createKeyboardLayoutComboBox(final String dataValue) {
@@ -91,7 +122,8 @@ class SourceTypeEditPane extends JPanel {
         }
     }
 
-    private String getDataValue() {
+    @Override
+    public String get() {
         return switch (valueField) {
             case JTextField f -> f.getText();
             case JLabel f -> f.getText();
@@ -100,37 +132,4 @@ class SourceTypeEditPane extends JPanel {
             default -> throw new IllegalArgumentException("Unrecognized component");
         };
     }
-
-    private class CoordinatesInput extends JPanel {
-
-        private final IntegerTextField xField;
-        private final IntegerTextField yField;
-
-        public CoordinatesInput(final String value) {
-            final DisplayMode currentDisplayMode = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode();
-            final int topWidth = currentDisplayMode.getWidth() - 1;
-            final int topHeight = currentDisplayMode.getHeight() - 1;
-            xField = new IntegerTextField(0, topWidth);
-            yField = new IntegerTextField(0, topHeight);
-            Util.putComponentsToHorizontalGrid(this,
-                    new double[]{0.0, 0.5, 0.0, 0.5},
-                    new JLabel("x (0-" + topWidth + ")"),
-                    xField,
-                    new JLabel("y (0-" + topHeight + ")"),
-                    yField
-            );
-        }
-
-        public void setDataValue(final String value) {
-            Util.stringToPoint(value).ifPresentOrElse(pointInt -> {
-                xField.setText(Integer.toString(pointInt.x()));
-                yField.setText(Integer.toString(pointInt.y()));
-            }, () -> logger.error("Cannot parse coordinates from: {}", value));
-        }
-
-        public String getDataValue() {
-            return Util.pointToString(new PointInt(Integer.parseInt(xField.getText()), Integer.parseInt(yField.getText())));
-        }
-    }
-
 }

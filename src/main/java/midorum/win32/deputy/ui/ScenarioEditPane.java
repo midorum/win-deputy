@@ -1,20 +1,24 @@
 package midorum.win32.deputy.ui;
 
+import midorum.win32.deputy.model.Activity;
 import midorum.win32.deputy.model.Scenario;
+import midorum.win32.deputy.model.ScenarioType;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-class ScenarioEditPane extends JPanel {
+class ScenarioEditPane extends JPanel implements Supplier<Scenario> {
 
     private final State state;
     private JTextField titleField;
     private JTextArea descriptionField;
     private JPanel gridPane;
-    private List<ActivityWrapperPane> activities;
+    private final List<ActivityWrapperPane> activities;
+    private ScenarioTypeEditPane scenarioTypeEditPane;
 
     ScenarioEditPane(final Scenario scenario, final State state) {
         this.state = state;
@@ -24,7 +28,7 @@ class ScenarioEditPane extends JPanel {
                 .map(ActivityWrapperPane::new)
                 .collect(Collectors.toCollection(ArrayList::new)));
 
-        compose(scenario.getTitle(), scenario.getDescription());
+        compose(scenario.getTitle(), scenario.getDescription(), scenario.getType());
     }
 
     ScenarioEditPane(final State state) {
@@ -32,10 +36,10 @@ class ScenarioEditPane extends JPanel {
         activities = new ArrayList<>();
         activities.add(new ActivityWrapperPane(state));
 
-        compose(null, null);
+        compose(null, null, null);
     }
 
-    private void compose(final String title, final String description) {
+    private void compose(final String title, final String description, final ScenarioType scenarioType) {
         titleField = new JTextField(title);
         descriptionField = new JTextArea(description);
         gridPane = new JPanel();
@@ -43,12 +47,15 @@ class ScenarioEditPane extends JPanel {
         scrollPane.setWheelScrollingEnabled(true);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 //        scrollPane.getViewport().addChangeListener(e -> System.out.println("Viewport changed: " + e));
+        scenarioTypeEditPane = new ScenarioTypeEditPane(scenarioType);
         Util.putComponentsToVerticalGrid(this,
+                new double[]{0.0, 0.0, 0.0, 0.0, 0.5, 0.0},
                 new JLabel("Title"),
                 titleField,
                 new JLabel("Description"),
                 descriptionField,
-                scrollPane);
+                scrollPane,
+                scenarioTypeEditPane);
         fillActivitiesGrid();
     }
 
@@ -96,10 +103,18 @@ class ScenarioEditPane extends JPanel {
     }
 
     private void fillActivitiesGrid() {
-        Util.putComponentsToVerticalGrid(gridPane, activities.toArray(Component[]::new));
+        Util.putComponentsToVerticalGrid(gridPane, -1, activities.toArray(Component[]::new));
     }
 
-    private class ActivityWrapperPane extends JPanel {
+    @Override
+    public Scenario get() {
+        return new Scenario(titleField.getText(),
+                descriptionField.getText(),
+                activities.stream().map(ActivityWrapperPane::get).toList(),
+                scenarioTypeEditPane.getScenarioType(), null);
+    }
+
+    private class ActivityWrapperPane extends JPanel implements Supplier<Activity> {
 
         private final ActivityEditPane activityEditPane;
 
@@ -149,6 +164,28 @@ class ScenarioEditPane extends JPanel {
             return btn;
         }
 
+        @Override
+        public Activity get() {
+            return activityEditPane.get();
+        }
     }
 
+    private class ScenarioTypeEditPane extends JPanel {
+
+        private final JComboBox<ScenarioType> checkTypeComboBox;
+
+        public ScenarioTypeEditPane(final ScenarioType scenarioType) {
+            this.checkTypeComboBox = new JComboBox<>(ScenarioType.values());
+            if (scenarioType != null)
+                checkTypeComboBox.setSelectedItem(scenarioType);
+            else
+                checkTypeComboBox.setSelectedIndex(-1);
+            Util.putComponentsToVerticalGrid(this, checkTypeComboBox);
+        }
+
+        public ScenarioType getScenarioType() {
+            return (ScenarioType) checkTypeComboBox.getSelectedItem();
+        }
+
+    }
 }

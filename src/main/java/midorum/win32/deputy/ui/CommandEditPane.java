@@ -7,8 +7,10 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-class CommandEditPane extends JPanel {
+class CommandEditPane extends JPanel implements Supplier<Command> {
 
     private final State state;
     private final ArrayList<CommandDataTypePane> commandDataList;
@@ -69,7 +71,7 @@ class CommandEditPane extends JPanel {
 
     private void deleteData(final CommandDataTypePane checkDataTypePane) {
         if (commandDataList.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last check data");
+            JOptionPane.showMessageDialog(this, "You cannot delete last command data");
             return;
         }
         commandDataList.remove(checkDataTypePane);
@@ -98,14 +100,22 @@ class CommandEditPane extends JPanel {
         revalidate();
     }
 
+    @Override
+    public Command get() {
+        return new Command((CommandType) commandTypeComboBox.getSelectedItem(),
+                commandDataList.stream().collect(Collectors.toMap(CommandDataTypePane::getCommandDataType, CommandDataTypePane::getCommandDataValue)));
+    }
+
     private class CommandDataTypePane extends JPanel {
 
         final List<CommandDataType> availableDataTypes;
-        final private JPanel sourceTypeEditPane;
+        final private JPanel sourceTypeEditPaneWrapper;
+        private JComboBox<CommandDataType> dataTypeComboBox;
+        private SourceTypeEditPane sourceTypeEditPane;
 
         public CommandDataTypePane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
             this.availableDataTypes = availableDataTypes;
-            this.sourceTypeEditPane = new JPanel();
+            this.sourceTypeEditPaneWrapper = new JPanel();
             Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(commandDataType, dataValue, availableDataTypes));
         }
 
@@ -119,9 +129,10 @@ class CommandEditPane extends JPanel {
 
         private JPanel createDataPane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
             final JPanel dataPane = new JPanel();
+            dataTypeComboBox = createDataTypeComboBox(commandDataType, availableDataTypes);
             Util.putComponentsToHorizontalGrid(dataPane,
-                    createDataTypeComboBox(commandDataType, availableDataTypes),
-                    sourceTypeEditPane);
+                    dataTypeComboBox,
+                    sourceTypeEditPaneWrapper);
             if (commandDataType != null) {
                 fillSourceTypeEditGrid(commandDataType, dataValue);
             }
@@ -143,13 +154,14 @@ class CommandEditPane extends JPanel {
         }
 
         private void repaintSourceTypeEditPane(final CommandDataType commandDataType) {
-            sourceTypeEditPane.removeAll();
+            sourceTypeEditPaneWrapper.removeAll();
             fillSourceTypeEditGrid(commandDataType, null);
             revalidate();
         }
 
         private void fillSourceTypeEditGrid(final CommandDataType commandDataType, final String dataValue) {
-            Util.putComponentsToHorizontalGrid(sourceTypeEditPane, new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state));
+            sourceTypeEditPane = new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state);
+            Util.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
         }
 
         private JPanel createButtonPane() {
@@ -187,5 +199,12 @@ class CommandEditPane extends JPanel {
             return btn;
         }
 
+        public CommandDataType getCommandDataType() {
+            return (CommandDataType) dataTypeComboBox.getSelectedItem();
+        }
+
+        public String getCommandDataValue() {
+            return sourceTypeEditPane.get();
+        }
     }
 }

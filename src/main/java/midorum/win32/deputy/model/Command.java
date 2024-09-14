@@ -12,6 +12,11 @@ private final Map<CommandDataType, String> data;
         this.data = data;
     }
 
+    public Command() {
+        this.type = null;
+        this.data = null;
+    }
+
     public CommandType getType() {
         return this.type;
     }

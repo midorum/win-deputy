@@ -8,9 +8,8 @@ import static midorum.win32.deputy.model.CheckDataType.*;
 public enum CheckType {
     processExists(Constants.PROCESS_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST),
     processNotExists(Constants.PROCESS_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST),
-    windowExists(Constants.WINDOW_MANDATORY_CHECK_DATA_TYPES, List.of(windowStyleExists, windowStyleNotExists,
-            windowExStyleExists, windowExStyleNotExists,
-            windowForeground)),
+    windowExists(Constants.WINDOW_MANDATORY_CHECK_DATA_TYPES, List.of(windowClassName, windowStyleIs,
+            windowExStyleIs, windowForeground)),
     windowNotExists(Constants.WINDOW_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST),
     stampFound(Constants.STAMP_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST),
     stampNotFound(Constants.STAMP_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST);

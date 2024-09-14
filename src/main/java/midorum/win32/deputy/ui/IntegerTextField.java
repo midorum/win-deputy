@@ -23,5 +23,6 @@ public class IntegerTextField extends JFormattedTextField {
         formatter.setAllowsInvalid(false);
         formatter.setCommitsOnValidEdit(true);
         setFormatterFactory(new DefaultFormatterFactory(formatter));
+        setHorizontalAlignment(SwingConstants.CENTER);
     }
 }

@@ -8,8 +8,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-class CheckEditPane extends JPanel {
+class CheckEditPane extends JPanel implements Supplier<Check> {
 
     private final State state;
     private final ArrayList<CheckDataTypePane> checkDataList;
@@ -100,14 +102,22 @@ class CheckEditPane extends JPanel {
         revalidate();
     }
 
+    @Override
+    public Check get() {
+        return new Check((CheckType) checkTypeComboBox.getSelectedItem(),
+                checkDataList.stream().collect(Collectors.toMap(CheckDataTypePane::getCheckDataType, CheckDataTypePane::getCheckDataValue)));
+    }
+
     private class CheckDataTypePane extends JPanel {
 
         final private List<CheckDataType> availableDataTypes;
-        final private JPanel sourceTypeEditPane;
+        final private JPanel sourceTypeEditPaneWrapper;
+        private JComboBox<CheckDataType> dataTypeComboBox;
+        private SourceTypeEditPane sourceTypeEditPane;
 
         public CheckDataTypePane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
             this.availableDataTypes = availableDataTypes;
-            this.sourceTypeEditPane = new JPanel();
+            this.sourceTypeEditPaneWrapper = new JPanel();
             Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(checkDataType, dataValue, availableDataTypes));
         }
 
@@ -121,9 +131,10 @@ class CheckEditPane extends JPanel {
 
         private JPanel createDataPane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
             final JPanel dataPane = new JPanel();
+            dataTypeComboBox = createDataTypeComboBox(checkDataType, availableDataTypes);
             Util.putComponentsToHorizontalGrid(dataPane,
-                    createDataTypeComboBox(checkDataType, availableDataTypes),
-                    sourceTypeEditPane);
+                    dataTypeComboBox,
+                    sourceTypeEditPaneWrapper);
             if (checkDataType != null) {
                 fillSourceTypeEditGrid(checkDataType, dataValue);
             }
@@ -133,7 +144,7 @@ class CheckEditPane extends JPanel {
         private JComboBox<CheckDataType> createDataTypeComboBox(final CheckDataType checkDataType, final List<CheckDataType> availableDataTypes) {
             final JComboBox<CheckDataType> dataTypeComboBox = new JComboBox<>(availableDataTypes.toArray(new CheckDataType[]{}));
             if (checkDataType != null) {
-                    dataTypeComboBox.setSelectedItem(checkDataType);
+                dataTypeComboBox.setSelectedItem(checkDataType);
             } else {
                 dataTypeComboBox.setSelectedIndex(-1);
             }
@@ -145,13 +156,14 @@ class CheckEditPane extends JPanel {
         }
 
         private void repaintSourceTypeEditPane(final CheckDataType checkDataType) {
-            sourceTypeEditPane.removeAll();
+            sourceTypeEditPaneWrapper.removeAll();
             fillSourceTypeEditGrid(checkDataType, null);
             revalidate();
         }
 
         private void fillSourceTypeEditGrid(final CheckDataType checkDataType, final String dataValue) {
-            Util.putComponentsToHorizontalGrid(sourceTypeEditPane, new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue, state));
+            sourceTypeEditPane = new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue, state);
+            Util.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
         }
 
         private JPanel createButtonPane() {
@@ -189,6 +201,13 @@ class CheckEditPane extends JPanel {
             return btn;
         }
 
+        public CheckDataType getCheckDataType() {
+            return (CheckDataType) dataTypeComboBox.getSelectedItem();
+        }
+
+        public String getCheckDataValue() {
+            return sourceTypeEditPane.get();
+        }
     }
 
 }

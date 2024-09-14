@@ -1,14 +1,17 @@
 package midorum.win32.deputy.ui;
 
 import midorum.win32.deputy.model.Activity;
+import midorum.win32.deputy.model.Check;
+import midorum.win32.deputy.model.Command;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-class ActivityEditPane extends JPanel {
+class ActivityEditPane extends JPanel implements Supplier<Activity> {
 
     private final State state;
     private JTextField titleField;
@@ -52,7 +55,7 @@ class ActivityEditPane extends JPanel {
 //        checksPane.setBorder(BorderFactory.createLineBorder(Color.BLUE));
         commandsPane = new JPanel(new GridBagLayout());
 //        commandsPane.setBorder(BorderFactory.createLineBorder(Color.GREEN));
-        Util.putComponentsToVerticalGrid(this, titleField, descriptionField, checksPane, commandsPane);
+        Util.putComponentsToVerticalGrid(this, -1, titleField, descriptionField, checksPane, commandsPane);
         fillChecksGrid();
         fillCommandsGrid();
     }
@@ -114,7 +117,7 @@ class ActivityEditPane extends JPanel {
 
     private void deleteCommand(final CommandWrapperPane commandPane) {
         if (commands.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last check from activity");
+            JOptionPane.showMessageDialog(this, "You cannot delete last command from activity");
             return;
         }
         commands.remove(commandPane);
@@ -151,14 +154,23 @@ class ActivityEditPane extends JPanel {
         Util.putComponentsToVerticalGrid(commandsPane, commands.toArray(Component[]::new));
     }
 
-    private class CheckWrapperPane extends JPanel {
+    @Override
+    public Activity get() {
+        return new Activity(titleField.getText(),
+                descriptionField.getText(),
+                checks.stream().map(CheckWrapperPane::get).toList(),
+                commands.stream().map(CommandWrapperPane::get).toList(),
+                null);
+    }
+
+    private class CheckWrapperPane extends JPanel implements Supplier<Check> {
 
         private final CheckEditPane checkEditPane;
 
         private CheckWrapperPane(final CheckEditPane checkEditPane) {
             this.checkEditPane = checkEditPane;
 //            setBorder(BorderFactory.createLineBorder(Color.BLUE));
-            Util.putComponentsToVerticalGrid(this, createButtonsPane(), checkEditPane);
+            Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
         }
 
         public CheckWrapperPane(final State state) {
@@ -201,16 +213,20 @@ class ActivityEditPane extends JPanel {
             return btn;
         }
 
+        @Override
+        public Check get() {
+            return checkEditPane.get();
+        }
     }
 
-    private class CommandWrapperPane extends JPanel {
+    private class CommandWrapperPane extends JPanel implements Supplier<Command> {
 
         private final CommandEditPane commandEditPane;
 
         private CommandWrapperPane(final CommandEditPane commandEditPane) {
             this.commandEditPane = commandEditPane;
 //            setBorder(BorderFactory.createLineBorder(Color.BLUE));
-            Util.putComponentsToVerticalGrid(this, createButtonsPane(), commandEditPane);
+            Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), commandEditPane);
         }
 
         public CommandWrapperPane(final State state) {
@@ -253,5 +269,9 @@ class ActivityEditPane extends JPanel {
             return btn;
         }
 
+        @Override
+        public Command get() {
+            return commandEditPane.get();
+        }
     }
 }

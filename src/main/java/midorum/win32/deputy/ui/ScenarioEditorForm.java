@@ -1,28 +1,32 @@
 package midorum.win32.deputy.ui;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import midorum.win32.deputy.model.Scenario;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.function.Supplier;
 
- class ScenarioEditorForm extends JPanel implements Displayable {
+class ScenarioEditorForm extends JPanel implements Displayable {
 
     private static final int PANE_MARGIN = 10;
     private final TaskDispatcher taskDispatcher;
     private final State state;
+    private final Supplier<Scenario> scenarioSupplier;
 
-     ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
+    ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
         this.state = new State();
+        final ScenarioEditPane scenarioEditPane = new ScenarioEditPane(state);
+        this.scenarioSupplier = scenarioEditPane;
+        scenarioEditPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
         Util.putComponentsToVerticalGrid(this,
                 1,
                 new JLabel("Scenario path will be here"),
-                createScenarioPane(),
+                scenarioEditPane,
                 createButtonPane());
-    }
-
-    private JPanel createScenarioPane() {
-        final JPanel scenarioPane = new ScenarioEditPane(state);
-        scenarioPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
-        return scenarioPane;
     }
 
     private JPanel createButtonPane() {
@@ -44,7 +48,23 @@ import java.awt.*;
 
     private Button createSaveButton() {
         final Button btn = new Button("Save");
-        btn.addActionListener(e -> System.out.println(e));
+        btn.addActionListener(e -> {
+            // ~~~
+            final Scenario scenario = scenarioSupplier.get();
+            System.out.println(scenario);
+            final ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            try {
+                final String s = objectMapper.writeValueAsString(scenario);
+                System.out.println(s);
+                final Scenario parsed = objectMapper.readValue(s, Scenario.class);
+                System.out.println(parsed);
+                System.out.println("-----------------");
+            } catch (JsonProcessingException ex) {
+                throw new RuntimeException(ex);
+            }
+
+        });
         return btn;
     }
 
@@ -56,7 +76,7 @@ import java.awt.*;
 
     @Override
     public void display() {
-       display(null);
+        display(null);
     }
 
     @Override

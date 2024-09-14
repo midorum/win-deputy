@@ -3,8 +3,8 @@ package midorum.win32.deputy.model;
 import java.util.List;
 
 public enum CommandDataType {
-    mousePosition(List.of(SourceType.coordinatesInput, SourceType.pickCoordinates)),
-    mouseShotRelatedPosition(List.of(SourceType.pickFile, SourceType.makeShot)),
+    mousePosition(List.of(SourceType.coordinatesInput, SourceType.pickAbsolutePoint)),
+    mouseShotRelatedPosition(List.of(SourceType.pickFile, SourceType.makeShot)), // todo add types for pick relative point
     keyboardTypeText(List.of(SourceType.userInput)),
     keyboardLayout(List.of(SourceType.keyboardLayoutChoice)),
     keyboardKeyCode(List.of(SourceType.userInput)),

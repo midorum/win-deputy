@@ -24,6 +24,14 @@ public class Activity {
         this.waiting = waiting;
     }
 
+    public Activity() {
+        this.title = null;
+        this.description = null;
+        this.checks = null;
+        this.commands = null;
+        this.waiting = null;
+    }
+
     public String getTitle() {
         return this.title;
     }

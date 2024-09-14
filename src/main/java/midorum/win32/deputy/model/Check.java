@@ -13,6 +13,11 @@ public class Check {
         this.data = data;
     }
 
+    public Check() {
+        this.type = null;
+        this.data = null;
+    }
+
     public CheckType getType() {
         return this.type;
     }

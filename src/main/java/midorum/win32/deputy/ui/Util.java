@@ -1,6 +1,8 @@
 package midorum.win32.deputy.ui;
 
+import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
+import com.midorum.win32api.win32.IWinUser;
 import midorum.win32.deputy.common.Either;
 
 import javax.swing.*;
@@ -17,7 +19,7 @@ import java.util.regex.Pattern;
 
 final class Util {
 
-    public static final Pattern POINT_PATTERN = Pattern.compile("^\\((\\d+),(\\d)\\)$");
+    public static final Pattern POINT_PATTERN = Pattern.compile("^\\((\\d+),(\\d+)\\)$");
 
     private Util() {
     }
@@ -35,18 +37,47 @@ final class Util {
         return -1;
     }
 
+    public static void putComponentsToVerticalGrid(final Container container, final double[] weights, final Component... components) {
+        if (container == null || weights == null || components == null || weights.length != components.length)
+            throw new IllegalArgumentException();
+        if (!(container.getLayout() instanceof GridBagLayout)) {
+            container.setLayout(new GridBagLayout());
+        }
+        final GridBagConstraints c = new GridBagConstraints();
+//        c.anchor = GridBagConstraints.FIRST_LINE_START; // align to the top left
+        c.anchor = GridBagConstraints.PAGE_START; // align to the top
+        c.weightx = 0.5; // fill all available width
+        c.gridy = 0; // first grid row
+        for (int i = 0; i < components.length; i++) {
+            if (weights[i] > 0.0) {
+//                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
+                c.fill = GridBagConstraints.BOTH; // resize component in both directions
+                c.weighty = weights[i]; // fill all available height
+            } else {
+                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
+                c.weighty = 0.0; // do not fill all available height
+            }
+            container.add(components[i], c);
+            c.gridy++; // increment grid row
+        }
+    }
+
     public static void putComponentsToVerticalGrid(final Container container, int stretch, final Component... components) {
         if (!(container.getLayout() instanceof GridBagLayout)) {
             container.setLayout(new GridBagLayout());
         }
         final GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.FIRST_LINE_START; // align to the top left
+//        c.anchor = GridBagConstraints.FIRST_LINE_START; // align to the top left
+        c.anchor = GridBagConstraints.PAGE_START; // align to the top
         c.weightx = 0.5; // fill all available width
         c.gridy = 0; // first grid row
         final int stretchIndex = stretch == Integer.MAX_VALUE ? components.length - 1 : stretch;
         for (int i = 0; i < components.length; i++) {
             if (i == stretchIndex) {
                 c.fill = GridBagConstraints.BOTH; // resize component in both directions
+                c.weighty = 0.5; // fill all available height
+            } else if (stretchIndex == -1 && i == components.length - 1) {
+                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
                 c.weighty = 0.5; // fill all available height
             } else {
                 c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
@@ -74,27 +105,6 @@ final class Util {
             if (i == components.length - 1) {
                 c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
                 c.weightx = 0.5; // fill all available width
-            }
-            container.add(components[i], c);
-            c.gridx++; // increment grid column
-        }
-    }
-
-    public static void putComponentsToHorizontalGridStretchFirst(final Container container, final Component... components) {
-        if (!(container.getLayout() instanceof GridBagLayout)) {
-            container.setLayout(new GridBagLayout());
-        }
-        final GridBagConstraints c = new GridBagConstraints();
-        c.anchor = GridBagConstraints.LINE_START; // align to left
-        c.gridx = 0; // first grid column
-        c.weighty = 0.0; // do not fill all available height
-        for (int i = 0; i < components.length; i++) {
-            if (i == 0) {
-                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
-                c.weightx = 0.5; // fill all available width
-            } else {
-                c.fill = GridBagConstraints.NONE; // do not resize component
-                c.weightx = 0.0; // do not fill all available width
             }
             container.add(components[i], c);
             c.gridx++; // increment grid column
@@ -133,7 +143,7 @@ final class Util {
         c.gridx = 0; // first grid column
         c.weighty = 0.0; // do not fill all available height
         for (int i = 0; i < components.length; i++) {
-            if(weights[i] > 0.0) {
+            if (weights[i] > 0.0) {
                 c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
                 c.weightx = weights[i]; // fill all available width
             } else {
@@ -188,62 +198,11 @@ final class Util {
         return "_" + System.currentTimeMillis();
     }
 
-    public static void captureAndSaveRegion(final State state,
-                                            final Component parent,
-                                            final Consumer<File> successFileConsumer,
-                                            final Consumer<IOException> errorConsumer) {
-        new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image ->
-                        askNewFile(state.getWorkingDirectory(), parent).ifPresent(file -> {
-                            final File workingDirectory = state.getWorkingDirectory();
-                            final File selectedDirectory = file.getParentFile();
-                            if (workingDirectory == null) {
-                                state.setWorkingDirectory(selectedDirectory);
-                            } else if (!Objects.equals(workingDirectory, selectedDirectory)) {
-                                if (JOptionPane.showConfirmDialog(parent,
-                                        "Your selected directory does not match current working directory." +
-                                                " It is not recommended to change working directory." +
-                                                " Would you like to change working directory anyway?",
-                                        "Warning",
-                                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                                    state.setWorkingDirectory(selectedDirectory);
-                                }
-                            }
-                            saveImage(image, getPathForImages(state.getWorkingDirectory()), file.getName())
-                                    .consumeOrHandleError(successFileConsumer, errorConsumer);
-                        }),
-                () -> JOptionPane.showMessageDialog(parent, "No rectangle was captured"))).display();
-    }
-
-    private static Either<File, IOException> saveImage(final BufferedImage bufferedImage, final String path, final String name) {
+    public static Either<File, IOException> saveImage(final BufferedImage bufferedImage, final String path, final String name) {
         return Either.value(() -> new FileServiceProvider()
                         .withFile(path, name, "png")
                         .writeImage(bufferedImage))
                 .orException(() -> new IOException("error while saving image: " + path + File.separator + name));
-    }
-
-    public static void pickFile(final State state, final Component parent, final Consumer<File> successFileConsumer) {
-        final BiConsumer<File, File> updateStateAndDoJob = (workingDirectory, acceptedFile) -> {
-            state.setWorkingDirectory(workingDirectory);
-            successFileConsumer.accept(acceptedFile);
-        };
-        Util.askExistFile(state.getWorkingDirectory(), parent).ifPresent(file -> {
-            final File workingDirectory = state.getWorkingDirectory();
-            final File selectedWorkingDirectory = Util.getWorkingDirectoryForPath(file.getParentFile());
-            if (workingDirectory == null) {
-                updateStateAndDoJob.accept(selectedWorkingDirectory, file);
-                return;
-            }
-            if (Objects.equals(workingDirectory, selectedWorkingDirectory)) {
-                successFileConsumer.accept(file);
-            } else if (JOptionPane.showConfirmDialog(parent,
-                    "Your selected directory does not match current working directory." +
-                            " It is not recommended to change working directory." +
-                            " Would you like to change working directory anyway?",
-                    "Warning",
-                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                updateStateAndDoJob.accept(selectedWorkingDirectory, file);
-            }
-        });
     }
 
     public static String pointToString(final PointInt point) {

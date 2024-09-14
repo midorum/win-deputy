@@ -2,7 +2,7 @@ package midorum.win32.deputy.model;
 
 public enum SourceType {
     /**
-     * если не указан этот тип, то пользовательский ввод запрещен (вместо поля для ввода должна быть отрисована метка с содержимым значения типа
+     * этот тип разрешает произвольный пользовательский ввод
      */
     userInput,
     /**
@@ -14,11 +14,32 @@ public enum SourceType {
      */
     makeShot,
     pickWindowProcessName,
+    pickWindowClassName,
     pickWindowTitle,
     pickWindowStyles,
     pickWindowExStyles,
+    /**
+     * этот тип запрещает произвольный пользовательский ввод, вместо этого должен быть отрисован выбор предопределенного значения
+     */
     booleanChoice,
+    /**
+     * этот тип разрешает пользовательский ввод двух целочисленных значений в заданных границах
+     */
     coordinatesInput,
-    pickCoordinates,
+    /**
+     * если указан этот тип, то должна быть нарисована кнопка для взятия координат абсолютной точки; возвращаемый тип - координаты точки
+     */
+    pickAbsolutePoint,
+    /**
+     * not supported yet
+     */
+    windowStyleChoice,
+    /**
+     * not supported yet
+     */
+    windowExStyleChoice,
+    /**
+     * этот тип запрещает произвольный пользовательский ввод, вместо этого должен быть отрисован выбор предопределенного значения
+     */
     keyboardLayoutChoice
 }
