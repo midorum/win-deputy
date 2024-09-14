@@ -16,5 +16,9 @@ public enum SourceType {
     pickWindowProcessName,
     pickWindowTitle,
     pickWindowStyles,
-    pickWindowExStyles
+    pickWindowExStyles,
+    booleanChoice,
+    coordinatesInput,
+    pickCoordinates,
+    keyboardLayoutChoice
 }

@@ -19,11 +19,11 @@ class CheckEditPane extends JPanel {
     CheckEditPane(final State state) {
         this.state = state;
         checkDataList = new ArrayList<>();
-//        setBorder(BorderFactory.createLineBorder(Color.CYAN));
         checkTypeComboBox = createCheckTypeComboBox();
         checkTypeComboBox.setSelectedIndex(-1);
         checkDataPane = new JPanel();
         Util.putComponentsToVerticalGrid(this, checkTypeComboBox, checkDataPane);
+        setBorder(BorderFactory.createLineBorder(Color.CYAN));
     }
 
     CheckEditPane(final Check check, final State state) {
@@ -35,7 +35,6 @@ class CheckEditPane extends JPanel {
 
     private JComboBox<CheckType> createCheckTypeComboBox() {
         final JComboBox<CheckType> checkType = new JComboBox<>(CheckType.values());
-        Util.retainComponentSize(checkType);
         checkType.addActionListener((e) -> {
             final CheckType selectedItem = (CheckType) checkType.getSelectedItem();
             if (selectedItem != null) initCheckData(selectedItem);
@@ -97,7 +96,7 @@ class CheckEditPane extends JPanel {
 
     private void repaintCheckData() {
         checkDataPane.removeAll();
-        Util.putComponentsToVerticalGrid(checkDataPane, checkDataList.toArray(Component[]::new));
+        Util.putComponentsToVerticalGrid(checkDataPane, -1, checkDataList.toArray(Component[]::new));
         revalidate();
     }
 
@@ -134,7 +133,7 @@ class CheckEditPane extends JPanel {
         private JComboBox<CheckDataType> createDataTypeComboBox(final CheckDataType checkDataType, final List<CheckDataType> availableDataTypes) {
             final JComboBox<CheckDataType> dataTypeComboBox = new JComboBox<>(availableDataTypes.toArray(new CheckDataType[]{}));
             if (checkDataType != null) {
-                dataTypeComboBox.setSelectedItem(checkDataType);
+                    dataTypeComboBox.setSelectedItem(checkDataType);
             } else {
                 dataTypeComboBox.setSelectedIndex(-1);
             }

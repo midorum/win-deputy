@@ -22,7 +22,7 @@ class CommandEditPane extends JPanel {
         commandTypeComboBox.setSelectedIndex(-1);
         commandDataPane = new JPanel();
         Util.putComponentsToVerticalGrid(this, commandTypeComboBox, commandDataPane);
-        this.setBorder(BorderFactory.createLineBorder(Color.RED));
+        this.setBorder(BorderFactory.createLineBorder(Color.CYAN));
     }
 
     public CommandEditPane(final Command command, final State state) {
@@ -34,7 +34,6 @@ class CommandEditPane extends JPanel {
 
     private JComboBox<CommandType> createCommandTypeComboBox() {
         final JComboBox<CommandType> commandType = new JComboBox<>(CommandType.values());
-        Util.retainComponentSize(commandType);
         commandType.addActionListener((e) -> {
             final CommandType selectedItem = (CommandType) commandType.getSelectedItem();
             if (selectedItem != null) initCommandData(selectedItem);
@@ -102,9 +101,11 @@ class CommandEditPane extends JPanel {
     private class CommandDataTypePane extends JPanel {
 
         final List<CommandDataType> availableDataTypes;
+        final private JPanel sourceTypeEditPane;
 
         public CommandDataTypePane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
             this.availableDataTypes = availableDataTypes;
+            this.sourceTypeEditPane = new JPanel();
             Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(commandDataType, dataValue, availableDataTypes));
         }
 
@@ -118,16 +119,37 @@ class CommandEditPane extends JPanel {
 
         private JPanel createDataPane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
             final JPanel dataPane = new JPanel();
+            Util.putComponentsToHorizontalGrid(dataPane,
+                    createDataTypeComboBox(commandDataType, availableDataTypes),
+                    sourceTypeEditPane);
+            if (commandDataType != null) {
+                fillSourceTypeEditGrid(commandDataType, dataValue);
+            }
+            return dataPane;
+        }
+
+        private JComboBox<CommandDataType> createDataTypeComboBox(final CommandDataType commandDataType, final List<CommandDataType> availableDataTypes) {
             final JComboBox<CommandDataType> dataTypeComboBox = new JComboBox<>(availableDataTypes.toArray(new CommandDataType[]{}));
             if (commandDataType != null) {
                 dataTypeComboBox.setSelectedItem(commandDataType);
             } else {
                 dataTypeComboBox.setSelectedIndex(-1);
             }
-            final JTextField valueField = new JTextField(dataValue);
-            Util.putComponentsToHorizontalGrid(dataPane, dataTypeComboBox, valueField);
-            dataPane.setBorder(BorderFactory.createLineBorder(Color.GREEN));
-            return dataPane;
+            dataTypeComboBox.addActionListener((e) -> {
+                final CommandDataType selectedItem = (CommandDataType) dataTypeComboBox.getSelectedItem();
+                if (selectedItem != null) repaintSourceTypeEditPane(selectedItem);
+            });
+            return dataTypeComboBox;
+        }
+
+        private void repaintSourceTypeEditPane(final CommandDataType commandDataType) {
+            sourceTypeEditPane.removeAll();
+            fillSourceTypeEditGrid(commandDataType, null);
+            revalidate();
+        }
+
+        private void fillSourceTypeEditGrid(final CommandDataType commandDataType, final String dataValue) {
+            Util.putComponentsToHorizontalGrid(sourceTypeEditPane, new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state));
         }
 
         private JPanel createButtonPane() {

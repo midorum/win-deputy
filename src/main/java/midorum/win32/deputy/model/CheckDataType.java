@@ -22,4 +22,5 @@ public enum CheckDataType {
     public List<SourceType> getSourceTypes() {
         return sourceTypes;
     }
+
 }

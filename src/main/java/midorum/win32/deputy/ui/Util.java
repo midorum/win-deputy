@@ -1,5 +1,6 @@
 package midorum.win32.deputy.ui;
 
+import com.midorum.win32api.struct.PointInt;
 import midorum.win32.deputy.common.Either;
 
 import javax.swing.*;
@@ -11,8 +12,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 final class Util {
+
+    public static final Pattern POINT_PATTERN = Pattern.compile("^\\((\\d+),(\\d)\\)$");
+
     private Util() {
     }
 
@@ -86,6 +92,50 @@ final class Util {
             if (i == 0) {
                 c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
                 c.weightx = 0.5; // fill all available width
+            } else {
+                c.fill = GridBagConstraints.NONE; // do not resize component
+                c.weightx = 0.0; // do not fill all available width
+            }
+            container.add(components[i], c);
+            c.gridx++; // increment grid column
+        }
+    }
+
+    public static void putComponentsToHorizontalGrid(final Container container, final int stretch, final Component... components) {
+        if (!(container.getLayout() instanceof GridBagLayout)) {
+            container.setLayout(new GridBagLayout());
+        }
+        final GridBagConstraints c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.LINE_START; // align to left
+        c.gridx = 0; // first grid column
+        c.weighty = 0.0; // do not fill all available height
+        final int stretchIndex = stretch == Integer.MAX_VALUE ? components.length - 1 : stretch;
+        for (int i = 0; i < components.length; i++) {
+            if (i == stretchIndex) {
+                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
+                c.weightx = 0.5; // fill all available width
+            } else {
+                c.fill = GridBagConstraints.NONE; // do not resize component
+                c.weightx = 0.0; // do not fill all available width
+            }
+            container.add(components[i], c);
+            c.gridx++; // increment grid column
+        }
+    }
+
+    public static void putComponentsToHorizontalGrid(final Container container, final double[] weights, final Component... components) {
+        if (container == null || weights == null || components == null || weights.length != components.length)
+            throw new IllegalArgumentException();
+        if (!(container.getLayout() instanceof GridBagLayout))
+            container.setLayout(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
+        c.anchor = GridBagConstraints.LINE_START; // align to left
+        c.gridx = 0; // first grid column
+        c.weighty = 0.0; // do not fill all available height
+        for (int i = 0; i < components.length; i++) {
+            if(weights[i] > 0.0) {
+                c.fill = GridBagConstraints.HORIZONTAL; // resize component horizontally
+                c.weightx = weights[i]; // fill all available width
             } else {
                 c.fill = GridBagConstraints.NONE; // do not resize component
                 c.weightx = 0.0; // do not fill all available width
@@ -194,6 +244,17 @@ final class Util {
                 updateStateAndDoJob.accept(selectedWorkingDirectory, file);
             }
         });
+    }
+
+    public static String pointToString(final PointInt point) {
+        return "(" + point.x() + "," + point.y() + ")";
+    }
+
+    public static Optional<PointInt> stringToPoint(final String s) {
+        if (s == null) return Optional.empty();
+        final Matcher matcher = POINT_PATTERN.matcher(s);
+        if (!matcher.matches()) return Optional.empty();
+        return Optional.of(new PointInt(Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2))));
     }
 
 }
