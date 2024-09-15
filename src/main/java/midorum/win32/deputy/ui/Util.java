@@ -1,8 +1,6 @@
 package midorum.win32.deputy.ui;
 
-import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
-import com.midorum.win32api.win32.IWinUser;
 import midorum.win32.deputy.common.Either;
 
 import javax.swing.*;
@@ -12,8 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

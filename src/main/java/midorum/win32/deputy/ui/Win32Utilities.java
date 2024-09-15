@@ -115,19 +115,15 @@ class Win32Utilities {
     }
 
     public void pickWindowStyles(final Consumer<String> resultConsumer) {
-        pickWindowByPoint(window -> {
-            window.getStyle().consumeOrHandleError((Consumer<? super Integer>) styles ->
-                            resultConsumer.accept(Integer.toString(styles)),
-                    e -> reportThrowable("Cannot get window styles", e));
-        });
+        pickWindowByPoint(window -> window.getStyle().consumeOrHandleError((Consumer<? super Integer>) styles ->
+                        resultConsumer.accept(Integer.toString(styles)),
+                e -> reportThrowable("Cannot get window styles", e)));
     }
 
     public void pickWindowExStyles(final Consumer<String> resultConsumer) {
-        pickWindowByPoint(window -> {
-            window.getExtendedStyle().consumeOrHandleError((Consumer<? super Integer>) styles ->
-                            resultConsumer.accept(Integer.toString(styles)),
-                    e -> reportThrowable("Cannot get window extended styles", e));
-        });
+        pickWindowByPoint(window -> window.getExtendedStyle().consumeOrHandleError((Consumer<? super Integer>) styles ->
+                        resultConsumer.accept(Integer.toString(styles)),
+                e -> reportThrowable("Cannot get window extended styles", e)));
     }
 
     private void reportThrowable(final String message, final Throwable t) {

@@ -1,6 +1,8 @@
 package midorum.win32.deputy.ui;
 
+import dma.function.SupplierThrowing;
 import midorum.win32.deputy.model.Activity;
+import midorum.win32.deputy.model.IllegalInputException;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.ScenarioType;
 
@@ -8,10 +10,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-class ScenarioEditPane extends JPanel implements Supplier<Scenario> {
+class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, IllegalInputException> {
 
     private final State state;
     private JTextField titleField;
@@ -28,7 +29,7 @@ class ScenarioEditPane extends JPanel implements Supplier<Scenario> {
                 .map(ActivityWrapperPane::new)
                 .collect(Collectors.toCollection(ArrayList::new)));
 
-        compose(scenario.getTitle(), scenario.getDescription(), scenario.getType());
+        compose(scenario.getTitle(), scenario.getDescription().orElse(null), scenario.getType());
     }
 
     ScenarioEditPane(final State state) {
@@ -107,14 +108,53 @@ class ScenarioEditPane extends JPanel implements Supplier<Scenario> {
     }
 
     @Override
-    public Scenario get() {
-        return new Scenario(titleField.getText(),
+    public Scenario get() throws IllegalInputException {
+        return new Scenario(validateAndGetScenarioTitle(),
                 descriptionField.getText(),
-                activities.stream().map(ActivityWrapperPane::get).toList(),
-                scenarioTypeEditPane.getScenarioType(), null);
+                validateAndGetActivities(),
+                validateAndGetScenarioType(), null);
     }
 
-    private class ActivityWrapperPane extends JPanel implements Supplier<Activity> {
+    private String validateAndGetScenarioTitle() throws IllegalInputException {
+        final String scenarioTitle = titleField.getText();
+        if(scenarioTitle == null || scenarioTitle.isBlank()) {
+            titleField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Scenario title cannot be empty");
+        }
+        titleField.setBorder(null);
+        return scenarioTitle;
+    }
+
+    private List<Activity> validateAndGetActivities() throws IllegalInputException {
+        final List<Activity> activitiesList = new ArrayList<>();
+        for (ActivityWrapperPane next : activities) {
+            final Activity activity = next.get();
+            if (!Scenario.validateActivityListItem(activity)) {
+                next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                throw new IllegalInputException("Illegal activity");
+            }
+            next.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+            activitiesList.add(activity);
+        }
+        if (!Scenario.validateActivities(activitiesList)) {
+            gridPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal activities");
+        }
+        gridPane.setBorder(null);
+        return activitiesList;
+    }
+
+    private ScenarioType validateAndGetScenarioType() throws IllegalInputException {
+        final ScenarioType scenarioType = scenarioTypeEditPane.getScenarioType();
+        if(scenarioType == null) {
+            scenarioTypeEditPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Scenario type cannot be empty");
+        }
+        scenarioTypeEditPane.setBorder(null);
+        return scenarioType;
+    }
+
+    private class ActivityWrapperPane extends JPanel implements SupplierThrowing<Activity, IllegalInputException> {
 
         private final ActivityEditPane activityEditPane;
 
@@ -131,7 +171,6 @@ class ScenarioEditPane extends JPanel implements Supplier<Scenario> {
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-//            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(new JLabel("Activity"));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
@@ -165,12 +204,12 @@ class ScenarioEditPane extends JPanel implements Supplier<Scenario> {
         }
 
         @Override
-        public Activity get() {
+        public Activity get() throws IllegalInputException {
             return activityEditPane.get();
         }
     }
 
-    private class ScenarioTypeEditPane extends JPanel {
+    private static class ScenarioTypeEditPane extends JPanel {
 
         private final JComboBox<ScenarioType> checkTypeComboBox;
 

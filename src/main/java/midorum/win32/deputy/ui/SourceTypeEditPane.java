@@ -1,6 +1,5 @@
 package midorum.win32.deputy.ui;
 
-import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.win32.MsLcid;
 import midorum.win32.deputy.model.SourceType;
@@ -17,13 +16,11 @@ import java.util.function.Supplier;
 
 class SourceTypeEditPane extends JPanel implements Supplier<String> {
 
-    private final State state;
     private final Component valueField;
     private final Logger logger = LogManager.getLogger(this);
     private final Win32Utilities win32Utilities;
 
     public SourceTypeEditPane(final List<SourceType> sourceTypes, final String dataValue, final State state) {
-        this.state = state;
         this.win32Utilities = new Win32Utilities(this);
         final List<Component> components = new ArrayList<>();
         this.valueField = sourceTypes.contains(SourceType.userInput) ? new JTextField(dataValue)

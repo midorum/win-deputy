@@ -1,17 +1,17 @@
 package midorum.win32.deputy.ui;
 
+import dma.function.SupplierThrowing;
 import midorum.win32.deputy.model.Check;
 import midorum.win32.deputy.model.CheckDataType;
 import midorum.win32.deputy.model.CheckType;
+import midorum.win32.deputy.model.IllegalInputException;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-class CheckEditPane extends JPanel implements Supplier<Check> {
+class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInputException> {
 
     private final State state;
     private final ArrayList<CheckDataTypePane> checkDataList;
@@ -103,9 +103,40 @@ class CheckEditPane extends JPanel implements Supplier<Check> {
     }
 
     @Override
-    public Check get() {
-        return new Check((CheckType) checkTypeComboBox.getSelectedItem(),
-                checkDataList.stream().collect(Collectors.toMap(CheckDataTypePane::getCheckDataType, CheckDataTypePane::getCheckDataValue)));
+    public Check get() throws IllegalInputException {
+        final CheckType checkType = validateAndGetCheckType();
+        final Map<CheckDataType, String> data = validateAndGetCheckData(checkType);
+        return new Check(checkType, data);
+    }
+
+    private CheckType validateAndGetCheckType() throws IllegalInputException {
+        final CheckType checkType = (CheckType) checkTypeComboBox.getSelectedItem();
+        if (!Check.validateCheckType(checkType)) {
+            checkTypeComboBox.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal check type");
+        }
+        checkTypeComboBox.setBorder(null);
+        return checkType;
+    }
+
+    private Map<CheckDataType, String> validateAndGetCheckData(final CheckType checkType) throws IllegalInputException {
+        final Map<CheckDataType, String> data = new HashMap<>(checkDataList.size());
+        for (final CheckDataTypePane next : checkDataList) {
+            final CheckDataType checkDataType = next.getCheckDataType();
+            final String checkDataValue = next.getCheckDataValue();
+            if (!Check.validateCheckDataEntry(checkDataType, checkDataValue)) {
+                next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                throw new IllegalInputException("Illegal check data");
+            }
+            next.setBorder(null);
+            data.put(checkDataType, checkDataValue);
+        }
+        if(!Check.validateCheckData(checkType, data)){
+            checkDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal check data");
+        }
+        checkDataPane.setBorder(null);
+        return data;
     }
 
     private class CheckDataTypePane extends JPanel {
@@ -169,7 +200,6 @@ class CheckEditPane extends JPanel implements Supplier<Check> {
         private JPanel createButtonPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             panel.setSize(panel.getPreferredSize());
-            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
@@ -206,7 +236,7 @@ class CheckEditPane extends JPanel implements Supplier<Check> {
         }
 
         public String getCheckDataValue() {
-            return sourceTypeEditPane.get();
+            return sourceTypeEditPane != null ? sourceTypeEditPane.get() : null;
         }
     }
 

@@ -1,7 +1,12 @@
 package midorum.win32.deputy.model;
 
+///import am.ik.yavi.builder.ValidatorBuilder;
+///import am.ik.yavi.core.Constraint;
+///import am.ik.yavi.core.Validator;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Именованный список активностей
@@ -9,6 +14,13 @@ import java.util.Map;
  * @author midorum
  */
 public class Scenario {
+
+///     public static final Validator<Scenario> validator = ValidatorBuilder.<Scenario>of()
+///            .constraint(Scenario::getTitle, "scenario title", c -> c.notNull().notBlank())
+///            .constraint(Scenario::getActivities, "scenario activities", c -> c.notNull().notEmpty())
+///            .constraint(Scenario::getType, "scenario type", Constraint::notNull)
+///            .forEach(Scenario::getActivities, "scenario activities", Activity.validator)
+///            .build();
 
     private final String title;
     private final String description;
@@ -32,12 +44,20 @@ public class Scenario {
         this.data = null;
     }
 
+    public static boolean validateActivityListItem(final Activity activity) {
+        return activity != null;
+    }
+
+    public static boolean validateActivities(final List<Activity> activitiesList) {
+        return activitiesList != null && !activitiesList.isEmpty();
+    }
+
     public String getTitle() {
         return this.title;
     }
 
-    public String getDescription() {
-        return this.description;
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(this.description);
     }
 
     public List<Activity> getActivities() {
@@ -48,8 +68,8 @@ public class Scenario {
         return this.type;
     }
 
-    public Map<ScenarioDataType, String> getData() {
-        return this.data;
+    public Optional<Map<ScenarioDataType, String>> getData() {
+        return Optional.ofNullable(this.data);
     }
 
     @Override
@@ -62,5 +82,6 @@ public class Scenario {
                 ", data='" + getData() + "'" +
                 "}";
     }
+
 
 }

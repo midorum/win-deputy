@@ -128,7 +128,7 @@ class CaptureWindow {
         return menuItemClose;
     }
 
-    private class MouseEventListener implements MouseListener, MouseMotionListener, MouseWheelListener {
+    private static class MouseEventListener implements MouseListener, MouseMotionListener, MouseWheelListener {
 
         private Point startDragScreenMouseLocation;
         private Point startDragScreenFrameLocation;
@@ -326,9 +326,9 @@ class CaptureWindow {
             final Point locationOnScreen = component.getLocationOnScreen();
             final Dimension size = component.getSize();
             final Container parent = component.getParent();
-//            SwingUtilities.convertPointToScreen(point, component);
-//            System.out.println("currentLocation: " + currentLocation + " locationOnScreen: " + locationOnScreen + " size:" + size);
-//            System.out.println("parent: "+parent);
+///            SwingUtilities.convertPointToScreen(point, component);
+///            System.out.println("currentLocation: " + currentLocation + " locationOnScreen: " + locationOnScreen + " size:" + size);
+///            System.out.println("parent: "+parent);
             final int xa = (int) currentLocation.getX();
             final int ya = (int) currentLocation.getY();
             if (doNotMoveOutOfScreenEdges) {

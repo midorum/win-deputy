@@ -7,6 +7,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 
 public class IntegerTextField extends JFormattedTextField {
+
     public IntegerTextField(final int lowBound, final int topBound) {
         final NumberFormat format = NumberFormat.getInstance();
         format.setGroupingUsed(false);
@@ -25,4 +26,5 @@ public class IntegerTextField extends JFormattedTextField {
         setFormatterFactory(new DefaultFormatterFactory(formatter));
         setHorizontalAlignment(SwingConstants.CENTER);
     }
+
 }

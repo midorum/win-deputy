@@ -1,5 +1,9 @@
 package midorum.win32.deputy.model;
 
+///import am.ik.yavi.builder.ValidatorBuilder;
+///import am.ik.yavi.core.Constraint;
+///import am.ik.yavi.core.Validator;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -9,6 +13,14 @@ import java.util.Optional;
  * @author midorum
  */
 public class Activity {
+
+///    public static final Validator<Activity> validator = ValidatorBuilder.<Activity>of()
+///            .constraint(Activity::getTitle, "activity title", c -> c.notNull().notBlank())
+///            .constraint(Activity::getChecks, "activity checks", c -> c.notNull().notEmpty())
+///            .constraint(Activity::getCommands, "activity commands", c -> c.notNull().notEmpty())
+///            .forEach(Activity::getChecks, "checks", Check.validator)
+////            .forEach(Activity::getCommands, "commands", Command.validator)
+///            .build();
 
     private final String title;
     private final String description;
@@ -32,12 +44,28 @@ public class Activity {
         this.waiting = null;
     }
 
+    public static boolean validateCheckListItem(final Check check) {
+        return check != null;
+    }
+
+    public static boolean validateChecks(final List<Check> checkList) {
+        return checkList != null && !checkList.isEmpty();
+    }
+
+    public static boolean validateCommandListItem(final Command command) {
+        return command != null;
+    }
+
+    public static boolean validateCommands(final List<Command> commandList) {
+        return commandList != null && !commandList.isEmpty();
+    }
+
     public String getTitle() {
         return this.title;
     }
 
-    public String getDescription() {
-        return this.description;
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(this.description);
     }
 
     public List<Check> getChecks() {
@@ -54,12 +82,12 @@ public class Activity {
 
     @Override
     public String toString() {
-        return "{" +
-            " title='" + getTitle() + "'" +
-            ", description='" + getDescription() + "'" +
-            ", checks='" + getChecks() + "'" +
-            ", commands='" + getCommands() + "'" +
-            "}";
+        return "Activity{" +
+                "title='" + title + '\'' +
+                ", description='" + description + '\'' +
+                ", checks=" + checks +
+                ", commands=" + commands +
+                ", waiting=" + waiting +
+                '}';
     }
-
 }

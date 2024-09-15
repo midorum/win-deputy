@@ -1,16 +1,14 @@
 package midorum.win32.deputy.ui;
 
+import dma.function.SupplierThrowing;
 import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-class CommandEditPane extends JPanel implements Supplier<Command> {
+class CommandEditPane extends JPanel implements SupplierThrowing<Command, IllegalInputException> {
 
     private final State state;
     private final ArrayList<CommandDataTypePane> commandDataList;
@@ -101,9 +99,40 @@ class CommandEditPane extends JPanel implements Supplier<Command> {
     }
 
     @Override
-    public Command get() {
-        return new Command((CommandType) commandTypeComboBox.getSelectedItem(),
-                commandDataList.stream().collect(Collectors.toMap(CommandDataTypePane::getCommandDataType, CommandDataTypePane::getCommandDataValue)));
+    public Command get() throws IllegalInputException {
+        final CommandType commandType = validateAndGetCommandType();
+        final Map<CommandDataType, String> data = validateAndGetCommandData(commandType);
+        return new Command(commandType, data);
+    }
+
+    private CommandType validateAndGetCommandType() throws IllegalInputException {
+        final CommandType commandType = (CommandType) commandTypeComboBox.getSelectedItem();
+        if (!Command.validateCommandType(commandType)) {
+            commandTypeComboBox.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal command type");
+        }
+        commandTypeComboBox.setBorder(null);
+        return commandType;
+    }
+
+    private Map<CommandDataType, String> validateAndGetCommandData(final CommandType commandType) throws IllegalInputException {
+        final Map<CommandDataType, String> data = new HashMap<>(commandDataList.size());
+        for (final CommandDataTypePane next : commandDataList) {
+            final CommandDataType commandDataType = next.getCommandDataType();
+            final String commandDataValue = next.getCommandDataValue();
+            if (!Command.validateCommandDataEntry(commandDataType, commandDataValue)) {
+                next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                throw new IllegalInputException("Illegal command data");
+            }
+            next.setBorder(null);
+            data.put(commandDataType, commandDataValue);
+        }
+        if(!Command.validateCommandData(commandType, data)){
+            commandDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal check data");
+        }
+        commandDataPane.setBorder(null);
+        return data;
     }
 
     private class CommandDataTypePane extends JPanel {
@@ -167,7 +196,6 @@ class CommandEditPane extends JPanel implements Supplier<Command> {
         private JPanel createButtonPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             panel.setSize(panel.getPreferredSize());
-            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
@@ -204,7 +232,7 @@ class CommandEditPane extends JPanel implements Supplier<Command> {
         }
 
         public String getCommandDataValue() {
-            return sourceTypeEditPane.get();
+            return sourceTypeEditPane != null ? sourceTypeEditPane.get() : null;
         }
     }
 }

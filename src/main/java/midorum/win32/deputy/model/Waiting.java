@@ -23,6 +23,14 @@ public class Waiting {
         this.timeout = 0L;
     }
 
+    public static boolean validateCheckListItem(final Check check) {
+        return check != null;
+    }
+
+    public static boolean validateChecks(final List<Check> checkList) {
+        return checkList != null && !checkList.isEmpty();
+    }
+
     public String getDescription() {
         return this.description;
     }

@@ -3,18 +3,27 @@ package midorum.win32.deputy.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import dma.function.SupplierThrowing;
+import midorum.win32.deputy.model.IllegalInputException;
 import midorum.win32.deputy.model.Scenario;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.function.Supplier;
+import java.io.File;
+import java.io.IOException;
 
 class ScenarioEditorForm extends JPanel implements Displayable {
 
     private static final int PANE_MARGIN = 10;
     private final TaskDispatcher taskDispatcher;
+    private final SupplierThrowing<Scenario, IllegalInputException> scenarioSupplier;
+    private final Logger logger = LogManager.getLogger(this);
     private final State state;
-    private final Supplier<Scenario> scenarioSupplier;
 
     ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
@@ -50,20 +59,32 @@ class ScenarioEditorForm extends JPanel implements Displayable {
         final Button btn = new Button("Save");
         btn.addActionListener(e -> {
             // ~~~
-            final Scenario scenario = scenarioSupplier.get();
-            System.out.println(scenario);
-            final ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             try {
-                final String s = objectMapper.writeValueAsString(scenario);
-                System.out.println(s);
-                final Scenario parsed = objectMapper.readValue(s, Scenario.class);
-                System.out.println(parsed);
-                System.out.println("-----------------");
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
-            }
+                final Scenario scenario = scenarioSupplier.get();
+                System.out.println(scenario);
+                Util.askNewFile(state.getWorkingDirectory(), this)
+                        .ifPresentOrElse(file -> {
+                            final ObjectMapper objectMapper = new ObjectMapper()
+                                    .registerModule(new ParameterNamesModule())
+                                    .registerModule(new Jdk8Module())
+                                    .registerModule(new JavaTimeModule());
+                            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                            try {
+                                final File scenarioFile = new File(file.getAbsolutePath() + ".wds");
+                                objectMapper.writeValue(scenarioFile, scenario);
+                                final Scenario parsed = objectMapper.readValue(scenarioFile, Scenario.class);
+                                System.out.println(parsed);
+                            } catch (IOException ex) {
+                                logger.error(ex.getMessage(), ex);
+                                JOptionPane.showMessageDialog(this, ex.getMessage());
+                            }
 
+                        }, () -> {
+                        });
+            } catch (IllegalInputException ex) {
+                logger.error(ex.getMessage(), ex);
+                JOptionPane.showMessageDialog(this, ex.getMessage());
+            }
         });
         return btn;
     }

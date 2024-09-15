@@ -16,16 +16,16 @@ public enum CommandType {
     private final List<List<CommandDataType>> mandatory;
     private final List<CommandDataType> optional;
 
-    private CommandType(final List<List<CommandDataType>> mandatory, final List<CommandDataType> optional) {
+    CommandType(final List<List<CommandDataType>> mandatory, final List<CommandDataType> optional) {
         this.mandatory = mandatory; //unmodifiable list
         this.optional = optional; //unmodifiable list
     }
 
-    public List<List<CommandDataType>> mandatory(){
+    public List<List<CommandDataType>> mandatory() {
         return this.mandatory;
     }
 
-    public List<CommandDataType> optional(){
+    public List<CommandDataType> optional() {
         return this.optional;
     }
 

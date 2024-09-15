@@ -1,63 +1,68 @@
 package midorum.win32.deputy.ui;
 
-import midorum.win32.deputy.model.Activity;
-import midorum.win32.deputy.model.Check;
-import midorum.win32.deputy.model.Command;
+import dma.function.SupplierThrowing;
+import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-class ActivityEditPane extends JPanel implements Supplier<Activity> {
+class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, IllegalInputException> {
 
     private final State state;
-    private JTextField titleField;
-    private JTextArea descriptionField;
-    private List<CheckWrapperPane> checks;
-    private List<CommandWrapperPane> commands;
-    private JPanel checksPane;
-    private JPanel commandsPane;
+    private final JTextField titleField;
+    private final JTextArea descriptionField;
+    private final List<CheckWrapperPane> checks;
+    private final List<CommandWrapperPane> commands;
+    private final JPanel checksPane;
+    private final JPanel commandsPane;
+    private final WaitingEditWrapperPane waitingEditWrapperPane;
 
     ActivityEditPane(final Activity activity, final State state) {
         this.state = state;
         checks = new ArrayList<>();
-        checks.addAll(activity.getChecks().stream()
-                .map(check -> new CheckEditPane(check, state))
-                .map(CheckWrapperPane::new)
-                .collect(Collectors.toCollection(ArrayList::new)));
+        final List<Check> activityChecks = activity.getChecks();
+        if (activityChecks != null) {
+            checks.addAll(activityChecks.stream()
+                    .map(check -> new CheckEditPane(check, state))
+                    .map(CheckWrapperPane::new)
+                    .collect(Collectors.toCollection(ArrayList::new)));
+        } else {
+            checks.add(new CheckWrapperPane(state));
+        }
         commands = new ArrayList<>();
-        commands.addAll(activity.getCommands().stream()
-                .map(command -> new CommandEditPane(command, state))
-                .map(CommandWrapperPane::new)
-                .collect(Collectors.toCollection(ArrayList::new)));
-
-        compose(activity.getTitle(), activity.getDescription());
+        final List<Command> activityCommands = activity.getCommands();
+        if (activityCommands != null) {
+            commands.addAll(activityCommands.stream()
+                    .map(command -> new CommandEditPane(command, state))
+                    .map(CommandWrapperPane::new)
+                    .collect(Collectors.toCollection(ArrayList::new)));
+        } else {
+            commands.add(new CommandWrapperPane(state));
+        }
+        titleField = new JTextField(activity.getTitle());
+        descriptionField = new JTextArea(activity.getDescription().orElse(null));
+        checksPane = new JPanel(new GridBagLayout());
+        checksPane.setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
+        commandsPane = new JPanel(new GridBagLayout());
+        commandsPane.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
+        waitingEditWrapperPane = new WaitingEditWrapperPane(state);
+        waitingEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+        Util.putComponentsToVerticalGrid(this,
+                -1,
+                titleField,
+                descriptionField,
+                checksPane,
+                commandsPane,
+                waitingEditWrapperPane);
+        fillChecksGrid();
+        fillCommandsGrid();
     }
 
     ActivityEditPane(final State state) {
-        this.state = state;
-        checks = new ArrayList<>();
-        checks.add(new CheckWrapperPane(state));
-        commands = new ArrayList<>();
-        commands.add(new CommandWrapperPane(state));
-
-        compose(null, null);
-    }
-
-    private void compose(final String title, final String description) {
-//        setBorder(BorderFactory.createLineBorder(Color.ORANGE));
-        titleField = new JTextField(title);
-        descriptionField = new JTextArea(description);
-        checksPane = new JPanel(new GridBagLayout());
-//        checksPane.setBorder(BorderFactory.createLineBorder(Color.BLUE));
-        commandsPane = new JPanel(new GridBagLayout());
-//        commandsPane.setBorder(BorderFactory.createLineBorder(Color.GREEN));
-        Util.putComponentsToVerticalGrid(this, -1, titleField, descriptionField, checksPane, commandsPane);
-        fillChecksGrid();
-        fillCommandsGrid();
+        this(new Activity(), state);
     }
 
     private void addCheckAbove(final CheckWrapperPane checkPane) {
@@ -155,21 +160,68 @@ class ActivityEditPane extends JPanel implements Supplier<Activity> {
     }
 
     @Override
-    public Activity get() {
-        return new Activity(titleField.getText(),
+    public Activity get() throws IllegalInputException {
+        return new Activity(validateAndGetActivityTitle(),
                 descriptionField.getText(),
-                checks.stream().map(CheckWrapperPane::get).toList(),
-                commands.stream().map(CommandWrapperPane::get).toList(),
-                null);
+                validateAndGetChecks(),
+                validateAndGetCommands(),
+                waitingEditWrapperPane.get());
     }
 
-    private class CheckWrapperPane extends JPanel implements Supplier<Check> {
+    private String validateAndGetActivityTitle() throws IllegalInputException {
+        final String title = titleField.getText();
+        if(title == null || title.isBlank()) {
+            titleField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Activity title cannot be empty");
+        }
+        titleField.setBorder(null);
+        return title;
+    }
+
+    private List<Check> validateAndGetChecks() throws IllegalInputException {
+        final List<Check> checkList = new ArrayList<>();
+        for (CheckWrapperPane next : checks) {
+            final Check check = next.get();
+            if (!Activity.validateCheckListItem(check)) {
+                next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                throw new IllegalInputException("Illegal check");
+            }
+            next.setBorder(null);
+            checkList.add(check);
+        }
+        if (!Activity.validateChecks(checkList)) {
+            checksPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal checks");
+        }
+        checksPane.setBorder(null);
+        return checkList;
+    }
+
+    private List<Command> validateAndGetCommands() throws IllegalInputException {
+        final List<Command> commandList = new ArrayList<>();
+        for (CommandWrapperPane next : commands) {
+            final Command command = next.get();
+            if (!Activity.validateCommandListItem(command)) {
+                next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                throw new IllegalInputException("Illegal command");
+            }
+            next.setBorder(null);
+            commandList.add(command);
+        }
+        if (!Activity.validateCommands(commandList)) {
+            commandsPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            throw new IllegalInputException("Illegal checks");
+        }
+        commandsPane.setBorder(null);
+        return commandList;
+    }
+
+    private class CheckWrapperPane extends JPanel implements SupplierThrowing<Check, IllegalInputException> {
 
         private final CheckEditPane checkEditPane;
 
         private CheckWrapperPane(final CheckEditPane checkEditPane) {
             this.checkEditPane = checkEditPane;
-//            setBorder(BorderFactory.createLineBorder(Color.BLUE));
             Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
         }
 
@@ -180,7 +232,6 @@ class ActivityEditPane extends JPanel implements Supplier<Activity> {
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-//            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(new JLabel("Check"));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
@@ -214,12 +265,12 @@ class ActivityEditPane extends JPanel implements Supplier<Activity> {
         }
 
         @Override
-        public Check get() {
+        public Check get() throws IllegalInputException {
             return checkEditPane.get();
         }
     }
 
-    private class CommandWrapperPane extends JPanel implements Supplier<Command> {
+    private class CommandWrapperPane extends JPanel implements SupplierThrowing<Command, IllegalInputException> {
 
         private final CommandEditPane commandEditPane;
 
@@ -236,7 +287,6 @@ class ActivityEditPane extends JPanel implements Supplier<Activity> {
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-//            panel.setBorder(BorderFactory.createLineBorder(Color.RED));
             panel.add(new JLabel("Command"));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
@@ -270,8 +320,69 @@ class ActivityEditPane extends JPanel implements Supplier<Activity> {
         }
 
         @Override
-        public Command get() {
+        public Command get() throws IllegalInputException{
             return commandEditPane.get();
+        }
+    }
+
+    private static class WaitingEditWrapperPane extends JPanel implements SupplierThrowing<Waiting, IllegalInputException> {
+
+        private final State state;
+        private final JPanel container;
+        private WaitingEditPane waitingEditPane;
+        private Button addWaitingButton;
+        private Button deleteWaitingButton;
+
+        public WaitingEditWrapperPane(final Waiting waiting, final State state) {
+            this.state = state;
+            this.container = new JPanel();
+            Util.putComponentsToVerticalGrid(this,
+                    createButtonsPane(),
+                    container);
+            if (waiting != null) {
+                addWaiting(waiting, state);
+            } else {
+                deleteWaiting();
+            }
+        }
+
+        public WaitingEditWrapperPane(final State state) {
+            this(null, state);
+        }
+
+        private JPanel createButtonsPane() {
+            final JPanel panel = new JPanel();
+            addWaitingButton = new Button("+");
+            addWaitingButton.addActionListener(e -> addWaiting(new Waiting(), state));
+            deleteWaitingButton = new Button("-");
+            deleteWaitingButton.addActionListener(e -> deleteWaiting());
+            Util.putComponentsToHorizontalGrid(panel,
+                    0,
+                    new JLabel("Waiting"),
+                    addWaitingButton,
+                    deleteWaitingButton);
+            return panel;
+        }
+
+        private void addWaiting(final Waiting waiting, final State state) {
+            waitingEditPane = new WaitingEditPane(waiting, state);
+            Util.putComponentsToVerticalGrid(container, waitingEditPane);
+            addWaitingButton.setVisible(false);
+            deleteWaitingButton.setVisible(true);
+            revalidate();
+        }
+
+        private void deleteWaiting() {
+            waitingEditPane = null;
+            container.removeAll();
+            addWaitingButton.setVisible(true);
+            deleteWaitingButton.setVisible(false);
+            revalidate();
+        }
+
+        @Override
+        public Waiting get() throws IllegalInputException {
+            return waitingEditPane != null ? waitingEditPane.get() : null;
         }
     }
 }

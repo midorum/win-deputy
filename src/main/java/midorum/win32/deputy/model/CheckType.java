@@ -18,8 +18,8 @@ public enum CheckType {
     private final List<CheckDataType> optional;
 
     CheckType(final List<CheckDataType> mandatory, final List<CheckDataType> optional) {
-        this.optional = mandatory; // unmodifiable list
-        this.mandatory = optional; // unmodifiable list
+        this.mandatory = mandatory; // unmodifiable list
+        this.optional = optional; // unmodifiable list
     }
 
     public List<CheckDataType> mandatory() {
