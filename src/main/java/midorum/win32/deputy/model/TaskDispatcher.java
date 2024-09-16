@@ -1,4 +1,4 @@
-package midorum.win32.deputy.ui;
+package midorum.win32.deputy.model;
 
 public interface TaskDispatcher {
     void createNewScenario();

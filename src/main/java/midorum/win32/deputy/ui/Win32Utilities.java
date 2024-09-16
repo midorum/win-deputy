@@ -1,24 +1,17 @@
 package midorum.win32.deputy.ui;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
 import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.IWinUser;
-import midorum.win32.deputy.model.Scenario;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;

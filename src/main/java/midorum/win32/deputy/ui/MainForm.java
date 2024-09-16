@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import midorum.win32.deputy.model.Scenario;
+import midorum.win32.deputy.model.TaskDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
