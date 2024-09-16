@@ -13,7 +13,7 @@ class CoordinatesInput extends JPanel {
     private final IntegerTextField yField;
     private final Logger logger = LogManager.getLogger(this);
 
-    CoordinatesInput(final String value) {
+    CoordinatesInput() {
         final DisplayMode currentDisplayMode = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode();
         final int topWidth = currentDisplayMode.getWidth() - 1;
         final int topHeight = currentDisplayMode.getHeight() - 1;
@@ -26,6 +26,20 @@ class CoordinatesInput extends JPanel {
                 new JLabel("y (0-" + topHeight + ")"),
                 yField
         );
+    }
+
+    CoordinatesInput(final String value) {
+        this();
+        if (value != null) {
+            Util.stringToPoint(value).ifPresentOrElse(pointInt -> {
+                xField.setText(Integer.toString(pointInt.x()));
+                yField.setText(Integer.toString(pointInt.y()));
+            }, () -> {
+                final String message = "Cannot parse coordinates: " + value;
+                logger.error(message);
+                JOptionPane.showMessageDialog(this, message);
+            });
+        }
     }
 
     public void setDataValue(final String value) {

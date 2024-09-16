@@ -1,5 +1,10 @@
 package midorum.win32.deputy.ui;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -33,11 +38,20 @@ class FileServiceProvider {
             this.file = new File((path != null ? path + File.separator : "")
                     + safeName
                     + (safeName.endsWith(fileExtension) ? "" : fileExtension));
-            if (!file.mkdirs()) throw new IOException("Cannot create directories: " + file.getAbsolutePath());
+            if (!file.getParentFile().exists() && !file.mkdirs()) throw new IOException("Cannot create directories: " + file.getAbsolutePath());
         }
 
         public File writeImage(final BufferedImage image) throws IOException {
             ImageIO.write(image, format, file);
+            return file;
+        }
+
+        public File writeJson(final Object object) throws IOException {
+            final ObjectMapper objectMapper = new ObjectMapper()
+                    .registerModule(new ParameterNamesModule())
+                    .registerModule(new Jdk8Module())
+                    .registerModule(new JavaTimeModule());
+            objectMapper.writeValue(file, object);
             return file;
         }
 

@@ -97,7 +97,7 @@ public class Either<T, X extends Throwable> {
         consumer.accept(value);
     }
 
-    public  void consumeOrHandleError(Consumer<? super T> consumer, final Consumer<X> errorHandler)  {
+    public void consumeOrHandleError(Consumer<? super T> consumer, final Consumer<X> errorHandler) {
         if (error != null) {
             errorHandler.accept(error);
             return;
@@ -139,6 +139,21 @@ public class Either<T, X extends Throwable> {
 
         private FromResultSupplier(final SupplierThrowing<T, X> supplier) {
             this.supplier = supplier;
+        }
+
+        @SuppressWarnings("unchecked")
+        public Either<T, X> orException() {
+            Either<T, X> result;
+            try {
+                result = fromValue(supplier.get());
+            } catch (Throwable e) {
+                switch (e) {
+                    case RuntimeException re -> throw re;
+                    case Error err -> throw err;
+                    default -> result = error((X) e);
+                }
+            }
+            return result;
         }
 
         public Either<T, X> orException(final Supplier<X> exceptionSupplier) {

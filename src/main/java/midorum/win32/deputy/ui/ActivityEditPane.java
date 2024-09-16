@@ -48,7 +48,9 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         checksPane.setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
         commandsPane = new JPanel(new GridBagLayout());
         commandsPane.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
-        waitingEditWrapperPane = new WaitingEditWrapperPane(state);
+        waitingEditWrapperPane = activity.getWaiting()
+                .map(waiting -> new WaitingEditWrapperPane(waiting, state))
+                .orElse(new WaitingEditWrapperPane(state));
         waitingEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
         Util.putComponentsToVerticalGrid(this,
                 -1,
@@ -170,7 +172,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
     private String validateAndGetActivityTitle() throws IllegalInputException {
         final String title = titleField.getText();
-        if(title == null || title.isBlank()) {
+        if (title == null || title.isBlank()) {
             titleField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
             throw new IllegalInputException("Activity title cannot be empty");
         }
@@ -276,7 +278,6 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
         private CommandWrapperPane(final CommandEditPane commandEditPane) {
             this.commandEditPane = commandEditPane;
-//            setBorder(BorderFactory.createLineBorder(Color.BLUE));
             Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), commandEditPane);
         }
 
@@ -320,7 +321,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         }
 
         @Override
-        public Command get() throws IllegalInputException{
+        public Command get() throws IllegalInputException {
             return commandEditPane.get();
         }
     }
@@ -333,21 +334,17 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         private Button addWaitingButton;
         private Button deleteWaitingButton;
 
-        public WaitingEditWrapperPane(final Waiting waiting, final State state) {
+        public WaitingEditWrapperPane(final State state) {
             this.state = state;
             this.container = new JPanel();
             Util.putComponentsToVerticalGrid(this,
                     createButtonsPane(),
                     container);
-            if (waiting != null) {
-                addWaiting(waiting, state);
-            } else {
-                deleteWaiting();
-            }
         }
 
-        public WaitingEditWrapperPane(final State state) {
-            this(null, state);
+        public WaitingEditWrapperPane(final Waiting waiting, final State state) {
+            this(state);
+            addWaiting(waiting, state);
         }
 
         private JPanel createButtonsPane() {

@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.function.Supplier;
 
 class CommandEditPane extends JPanel implements SupplierThrowing<Command, IllegalInputException> {
 
@@ -22,30 +23,28 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         commandTypeComboBox.setSelectedIndex(-1);
         commandDataPane = new JPanel();
         Util.putComponentsToVerticalGrid(this, commandTypeComboBox, commandDataPane);
-        this.setBorder(BorderFactory.createLineBorder(Color.CYAN));
     }
 
     public CommandEditPane(final Command command, final State state) {
         this(state);
         commandTypeComboBox.setSelectedItem(command.getType());
-        command.getData().forEach((commandDataType, s) -> commandDataList.add(new CommandDataTypePane(commandDataType, s, getAvailableDataTypes(command.getType()))));
-        commandDataList.forEach(commandDataPane::add);
+        final List<CommandDataType> availableDataTypes = getAvailableDataTypes(command.getType());
+        commandDataList.clear();
+        command.getData().forEach((commandDataType, s) -> commandDataList.add(new CommandDataTypePane(commandDataType, s, availableDataTypes)));
+        repaintCommandData();
     }
 
     private JComboBox<CommandType> createCommandTypeComboBox() {
         final JComboBox<CommandType> commandType = new JComboBox<>(CommandType.values());
         commandType.addActionListener((e) -> {
             final CommandType selectedItem = (CommandType) commandType.getSelectedItem();
-            if (selectedItem != null) initCommandData(selectedItem);
+            if (selectedItem != null) {
+                commandDataList.clear();
+                commandDataList.add(new CommandDataTypePane(getAvailableDataTypes(selectedItem)));
+                repaintCommandData();
+            }
         });
         return commandType;
-    }
-
-    private void initCommandData(final CommandType commandType) {
-        commandDataList.clear();
-        final List<CommandDataType> availableDataTypes = getAvailableDataTypes(commandType);
-        commandDataList.add(new CommandDataTypePane(availableDataTypes));
-        repaintCommandData();
     }
 
     private static List<CommandDataType> getAvailableDataTypes(final CommandType commandType) {
@@ -101,8 +100,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
     @Override
     public Command get() throws IllegalInputException {
         final CommandType commandType = validateAndGetCommandType();
-        final Map<CommandDataType, String> data = validateAndGetCommandData(commandType);
-        return new Command(commandType, data);
+        return new Command(commandType, validateAndGetCommandData(commandType));
     }
 
     private CommandType validateAndGetCommandType() throws IllegalInputException {
@@ -127,7 +125,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
             next.setBorder(null);
             data.put(commandDataType, commandDataValue);
         }
-        if(!Command.validateCommandData(commandType, data)){
+        if (!Command.validateCommandData(commandType, data)) {
             commandDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
             throw new IllegalInputException("Illegal check data");
         }
@@ -140,57 +138,44 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         final List<CommandDataType> availableDataTypes;
         final private JPanel sourceTypeEditPaneWrapper;
         private JComboBox<CommandDataType> dataTypeComboBox;
-        private SourceTypeEditPane sourceTypeEditPane;
-
-        public CommandDataTypePane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
-            this.availableDataTypes = availableDataTypes;
-            this.sourceTypeEditPaneWrapper = new JPanel();
-            Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(commandDataType, dataValue, availableDataTypes));
-        }
+        private Supplier<String> dataValueSupplier;
 
         public CommandDataTypePane(final List<CommandDataType> availableDataTypes) {
-            this(null, null, availableDataTypes);
+            this.availableDataTypes = availableDataTypes;
+            this.sourceTypeEditPaneWrapper = new JPanel();
+            this.dataTypeComboBox = createDataTypeComboBox(availableDataTypes);
+            Util.putComponentsToHorizontalGrid(this,
+                    createButtonPane(),
+                    dataTypeComboBox,
+                    sourceTypeEditPaneWrapper);
+        }
+
+        public CommandDataTypePane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
+            this(availableDataTypes);
+            dataTypeComboBox.setSelectedItem(commandDataType);
+            fillSourceTypeEditGrid(commandDataType, dataValue);
         }
 
         public List<CommandDataType> getAvailableDataTypes() {
             return availableDataTypes;
         }
 
-        private JPanel createDataPane(final CommandDataType commandDataType, final String dataValue, final List<CommandDataType> availableDataTypes) {
-            final JPanel dataPane = new JPanel();
-            dataTypeComboBox = createDataTypeComboBox(commandDataType, availableDataTypes);
-            Util.putComponentsToHorizontalGrid(dataPane,
-                    dataTypeComboBox,
-                    sourceTypeEditPaneWrapper);
-            if (commandDataType != null) {
-                fillSourceTypeEditGrid(commandDataType, dataValue);
-            }
-            return dataPane;
-        }
-
-        private JComboBox<CommandDataType> createDataTypeComboBox(final CommandDataType commandDataType, final List<CommandDataType> availableDataTypes) {
-            final JComboBox<CommandDataType> dataTypeComboBox = new JComboBox<>(availableDataTypes.toArray(new CommandDataType[]{}));
-            if (commandDataType != null) {
-                dataTypeComboBox.setSelectedItem(commandDataType);
-            } else {
-                dataTypeComboBox.setSelectedIndex(-1);
-            }
-            dataTypeComboBox.addActionListener((e) -> {
-                final CommandDataType selectedItem = (CommandDataType) dataTypeComboBox.getSelectedItem();
-                if (selectedItem != null) repaintSourceTypeEditPane(selectedItem);
+        private JComboBox<CommandDataType> createDataTypeComboBox(final List<CommandDataType> availableDataTypes) {
+            final JComboBox<CommandDataType> comboBox = new JComboBox<>(availableDataTypes.toArray(new CommandDataType[]{}));
+            comboBox.setSelectedIndex(-1);
+            comboBox.addActionListener((e) -> {
+                final CommandDataType selectedItem = (CommandDataType) comboBox.getSelectedItem();
+                if (selectedItem != null) fillSourceTypeEditGrid(selectedItem, null);
             });
-            return dataTypeComboBox;
-        }
-
-        private void repaintSourceTypeEditPane(final CommandDataType commandDataType) {
-            sourceTypeEditPaneWrapper.removeAll();
-            fillSourceTypeEditGrid(commandDataType, null);
-            revalidate();
+            return comboBox;
         }
 
         private void fillSourceTypeEditGrid(final CommandDataType commandDataType, final String dataValue) {
-            sourceTypeEditPane = new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state);
+            final SourceTypeEditPane sourceTypeEditPane = new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state);
+            dataValueSupplier = sourceTypeEditPane;
+            sourceTypeEditPaneWrapper.removeAll();
             Util.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
+            sourceTypeEditPaneWrapper.revalidate();
         }
 
         private JPanel createButtonPane() {
@@ -232,7 +217,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         }
 
         public String getCommandDataValue() {
-            return sourceTypeEditPane != null ? sourceTypeEditPane.get() : null;
+            return dataValueSupplier != null ? dataValueSupplier.get() : null;
         }
     }
 }

@@ -1,17 +1,24 @@
 package midorum.win32.deputy.ui;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
 import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.IWinUser;
+import midorum.win32.deputy.model.Scenario;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -28,26 +35,10 @@ class Win32Utilities {
 
     public void captureAndSaveRegion(final State state,
                                      final Consumer<File> resultConsumer) {
-        new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image ->
-                        Util.askNewFile(state.getWorkingDirectory(), parentComponent).ifPresent(file -> {
-                            final File workingDirectory = state.getWorkingDirectory();
-                            final File selectedDirectory = file.getParentFile();
-                            if (workingDirectory == null) {
-                                state.setWorkingDirectory(selectedDirectory);
-                            } else if (!Objects.equals(workingDirectory, selectedDirectory)) {
-                                if (JOptionPane.showConfirmDialog(parentComponent,
-                                        "Your selected directory does not match current working directory." +
-                                                " It is not recommended to change working directory." +
-                                                " Would you like to change working directory anyway?",
-                                        "Warning",
-                                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                                    state.setWorkingDirectory(selectedDirectory);
-                                }
-                            }
-                            Util.saveImage(image, Util.getPathForImages(state.getWorkingDirectory()), file.getName())
-                                    .consumeOrHandleError(resultConsumer,
-                                            e -> reportThrowable("Error occured while saving image", e));
-                        }),
+        new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image -> Util.askNewFileAndUpdateState(state, file ->
+                        Util.saveImage(image, Util.getPathForImages(state.getWorkingDirectory()), file.getName())
+                                .consumeOrHandleError(resultConsumer,
+                                        e -> reportThrowable("Error occurred while saving image", e)), parentComponent),
                 () -> reportState("No rectangle was captured"))).display();
     }
 

@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.function.Supplier;
 
 class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInputException> {
 
@@ -25,30 +26,28 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
         checkTypeComboBox.setSelectedIndex(-1);
         checkDataPane = new JPanel();
         Util.putComponentsToVerticalGrid(this, checkTypeComboBox, checkDataPane);
-        setBorder(BorderFactory.createLineBorder(Color.CYAN));
     }
 
     CheckEditPane(final Check check, final State state) {
         this(state);
         checkTypeComboBox.setSelectedItem(check.getType());
-        check.getData().forEach((checkDataType, s) -> checkDataList.add(new CheckDataTypePane(checkDataType, s, getAvailableDataTypes(check.getType()))));
-        checkDataList.forEach(checkDataPane::add);
+        final List<CheckDataType> availableDataTypes = getAvailableDataTypes(check.getType());
+        checkDataList.clear();
+        check.getData().forEach((checkDataType, s) -> checkDataList.add(new CheckDataTypePane(checkDataType, s, availableDataTypes)));
+        repaintCheckData();
     }
 
     private JComboBox<CheckType> createCheckTypeComboBox() {
         final JComboBox<CheckType> checkType = new JComboBox<>(CheckType.values());
         checkType.addActionListener((e) -> {
             final CheckType selectedItem = (CheckType) checkType.getSelectedItem();
-            if (selectedItem != null) initCheckData(selectedItem);
+            if (selectedItem != null) {
+                checkDataList.clear();
+                checkDataList.add(new CheckDataTypePane(getAvailableDataTypes(selectedItem)));
+                repaintCheckData();
+            }
         });
         return checkType;
-    }
-
-    private void initCheckData(final CheckType checkType) {
-        checkDataList.clear();
-        final List<CheckDataType> availableDataTypes = getAvailableDataTypes(checkType);
-        checkDataList.add(new CheckDataTypePane(availableDataTypes));
-        repaintCheckData();
     }
 
     private static List<CheckDataType> getAvailableDataTypes(final CheckType checkType) {
@@ -105,8 +104,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
     @Override
     public Check get() throws IllegalInputException {
         final CheckType checkType = validateAndGetCheckType();
-        final Map<CheckDataType, String> data = validateAndGetCheckData(checkType);
-        return new Check(checkType, data);
+        return new Check(checkType, validateAndGetCheckData(checkType));
     }
 
     private CheckType validateAndGetCheckType() throws IllegalInputException {
@@ -131,7 +129,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
             next.setBorder(null);
             data.put(checkDataType, checkDataValue);
         }
-        if(!Check.validateCheckData(checkType, data)){
+        if (!Check.validateCheckData(checkType, data)) {
             checkDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
             throw new IllegalInputException("Illegal check data");
         }
@@ -141,60 +139,47 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
 
     private class CheckDataTypePane extends JPanel {
 
-        final private List<CheckDataType> availableDataTypes;
-        final private JPanel sourceTypeEditPaneWrapper;
-        private JComboBox<CheckDataType> dataTypeComboBox;
-        private SourceTypeEditPane sourceTypeEditPane;
-
-        public CheckDataTypePane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
-            this.availableDataTypes = availableDataTypes;
-            this.sourceTypeEditPaneWrapper = new JPanel();
-            Util.putComponentsToHorizontalGrid(this, createButtonPane(), createDataPane(checkDataType, dataValue, availableDataTypes));
-        }
+        private final List<CheckDataType> availableDataTypes;
+        private final JPanel sourceTypeEditPaneWrapper;
+        private final JComboBox<CheckDataType> dataTypeComboBox;
+        private Supplier<String> dataValueSupplier;
 
         public CheckDataTypePane(final List<CheckDataType> availableDataTypes) {
-            this(null, null, availableDataTypes);
+            this.availableDataTypes = availableDataTypes;
+            this.sourceTypeEditPaneWrapper = new JPanel();
+            this.dataTypeComboBox = createDataTypeComboBox(availableDataTypes);
+            Util.putComponentsToHorizontalGrid(this,
+                    createButtonPane(),
+                    dataTypeComboBox,
+                    sourceTypeEditPaneWrapper);
+        }
+
+        public CheckDataTypePane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
+            this(availableDataTypes);
+            dataTypeComboBox.setSelectedItem(checkDataType);
+            fillSourceTypeEditGrid(checkDataType, dataValue);
         }
 
         public List<CheckDataType> getAvailableDataTypes() {
             return availableDataTypes;
         }
 
-        private JPanel createDataPane(final CheckDataType checkDataType, final String dataValue, final List<CheckDataType> availableDataTypes) {
-            final JPanel dataPane = new JPanel();
-            dataTypeComboBox = createDataTypeComboBox(checkDataType, availableDataTypes);
-            Util.putComponentsToHorizontalGrid(dataPane,
-                    dataTypeComboBox,
-                    sourceTypeEditPaneWrapper);
-            if (checkDataType != null) {
-                fillSourceTypeEditGrid(checkDataType, dataValue);
-            }
-            return dataPane;
-        }
-
-        private JComboBox<CheckDataType> createDataTypeComboBox(final CheckDataType checkDataType, final List<CheckDataType> availableDataTypes) {
-            final JComboBox<CheckDataType> dataTypeComboBox = new JComboBox<>(availableDataTypes.toArray(new CheckDataType[]{}));
-            if (checkDataType != null) {
-                dataTypeComboBox.setSelectedItem(checkDataType);
-            } else {
-                dataTypeComboBox.setSelectedIndex(-1);
-            }
-            dataTypeComboBox.addActionListener((e) -> {
-                final CheckDataType selectedItem = (CheckDataType) dataTypeComboBox.getSelectedItem();
-                if (selectedItem != null) repaintSourceTypeEditPane(selectedItem);
+        private JComboBox<CheckDataType> createDataTypeComboBox(final List<CheckDataType> availableDataTypes) {
+            final JComboBox<CheckDataType> comboBox = new JComboBox<>(availableDataTypes.toArray(new CheckDataType[]{}));
+            comboBox.setSelectedIndex(-1);
+            comboBox.addActionListener((e) -> {
+                final CheckDataType selectedItem = (CheckDataType) comboBox.getSelectedItem();
+                if (selectedItem != null) fillSourceTypeEditGrid(selectedItem, null);
             });
-            return dataTypeComboBox;
-        }
-
-        private void repaintSourceTypeEditPane(final CheckDataType checkDataType) {
-            sourceTypeEditPaneWrapper.removeAll();
-            fillSourceTypeEditGrid(checkDataType, null);
-            revalidate();
+            return comboBox;
         }
 
         private void fillSourceTypeEditGrid(final CheckDataType checkDataType, final String dataValue) {
-            sourceTypeEditPane = new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue, state);
+            final SourceTypeEditPane sourceTypeEditPane = new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue, state);
+            dataValueSupplier = sourceTypeEditPane;
+            sourceTypeEditPaneWrapper.removeAll();
             Util.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
+            sourceTypeEditPaneWrapper.revalidate();
         }
 
         private JPanel createButtonPane() {
@@ -236,7 +221,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
         }
 
         public String getCheckDataValue() {
-            return sourceTypeEditPane != null ? sourceTypeEditPane.get() : null;
+            return dataValueSupplier != null ? dataValueSupplier.get() : null;
         }
     }
 

@@ -1,5 +1,7 @@
 package midorum.win32.deputy.ui;
 
+import midorum.win32.deputy.model.Scenario;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
@@ -9,13 +11,29 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
 
     private static final int PANE_MARGIN = 10;
     private final TaskDispatcher taskDispatcher;
+    private final State state;
+    private final JLabel scenarioPathLabel;
+    private Button editScenarioButton;
 
     ScenarioViewerForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
+        this.state = new State();
+        scenarioPathLabel = new JLabel();
         Util.putComponentsToVerticalGrid(this,
-                0,
+                1,
+                scenarioPathLabel,
                 new JPanel(),
                 createButtonPane());
+        scenarioPathLabel.setText("New scenario");
+        editScenarioButton.setEnabled(false);
+    }
+
+    ScenarioViewerForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile) {
+        this(taskDispatcher);
+        state.setWorkingDirectory(scenarioFile.getParentFile());
+        state.setScenarioName(scenarioFile.getName());
+        scenarioPathLabel.setText(scenarioFile.getAbsolutePath());
+        editScenarioButton.setEnabled(true);
     }
 
     private JPanel createButtonPane() {
@@ -25,7 +43,8 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         buttonPane.add(Box.createHorizontalGlue());
         buttonPane.add(createLoadScenarioButton());
 //        buttonPane.add(Box.createRigidArea(new Dimension(10, 0)));
-        buttonPane.add(createEditScenarioButton());
+        editScenarioButton = createEditScenarioButton();
+        buttonPane.add(editScenarioButton);
 //        buttonPane.add(Box.createRigidArea(new Dimension(10, 0)));
         buttonPane.add(createCreateScenarioButton());
         buttonPane.add(createRunScenarioButton());
@@ -35,35 +54,14 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
 
     private Button createLoadScenarioButton() {
         final Button btn = new Button("Load scenario");
-        btn.addActionListener(e -> {
-            // https://stackoverflow.com/questions/27288636/how-to-load-a-file-using-jfilechooser
-            JFileChooser fileChooser = new JFileChooser();
-            int returnValue = fileChooser.showOpenDialog(null);
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-                System.out.println("selected file: " + selectedFile.getAbsolutePath());
-                System.out.println("selected file exists: " + selectedFile.exists());
-                System.out.println("selected file name: " + selectedFile.getName());
-//                System.out.println("selected file path: " + selectedFile.getPath());
-                System.out.println("selected file path: " + selectedFile.getParentFile().getAbsolutePath());
-                if(selectedFile.exists()) {
-                    try {
-                       // opens file via system
-                        Desktop.getDesktop().open(selectedFile);//<-- here
-                        // opens file navigator with home directory
-//                        Desktop.getDesktop().open(new File(System.getProperty("user.home")));
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            }
-        });
+        btn.addActionListener(e -> taskDispatcher.loadScenario());
         return btn;
     }
 
     private Button createEditScenarioButton() {
         final Button btn = new Button("Edit scenario");
-        btn.addActionListener(e -> System.out.println("actionEvent: " + e));
+        btn.addActionListener(e -> taskDispatcher.editScenario(new File(state.getWorkingDirectory(),
+                state.getScenarioName()).getAbsolutePath()));
         return btn;
     }
 
@@ -99,4 +97,5 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     public void conceal() {
         setVisible(false);
     }
+
 }

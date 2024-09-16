@@ -28,7 +28,6 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
                 .map(activity -> new ActivityEditPane(activity, state))
                 .map(ActivityWrapperPane::new)
                 .collect(Collectors.toCollection(ArrayList::new)));
-
         compose(scenario.getTitle(), scenario.getDescription().orElse(null), scenario.getType());
     }
 
@@ -36,7 +35,6 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         this.state = state;
         activities = new ArrayList<>();
         activities.add(new ActivityWrapperPane(state));
-
         compose(null, null, null);
     }
 

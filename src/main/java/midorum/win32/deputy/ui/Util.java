@@ -1,7 +1,13 @@
 package midorum.win32.deputy.ui;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.struct.PointInt;
 import midorum.win32.deputy.common.Either;
+import midorum.win32.deputy.model.Scenario;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -186,8 +193,32 @@ final class Util {
         return askFile(currentDirectory, parent, true);
     }
 
+    public static void askNewFileAndUpdateState(final State state, final Consumer<File> fileConsumer, final Component parent) {
+        Util.askNewFile(state.getWorkingDirectory(), parent).ifPresent(file -> {
+            final File workingDirectory = state.getWorkingDirectory();
+            final File selectedDirectory = file.getParentFile();
+            if (workingDirectory == null) {
+                state.setWorkingDirectory(selectedDirectory);
+            } else if (!Objects.equals(workingDirectory, selectedDirectory)) {
+                if (JOptionPane.showConfirmDialog(parent,
+                        "Your selected directory does not match current working directory." +
+                                " It is not recommended to change working directory." +
+                                " Would you like to change working directory anyway?",
+                        "Warning",
+                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    state.setWorkingDirectory(selectedDirectory);
+                }
+            }
+            fileConsumer.accept(file);
+        });
+    }
+
     public static String getPathForImages(final File workingDirectory) {
         return workingDirectory != null ? workingDirectory.getAbsolutePath() + File.separator + "shots" : "shots";
+    }
+
+    public static String getPathForScenarios(final File workingDirectory) {
+        return workingDirectory != null ? workingDirectory.getAbsolutePath() : "";
     }
 
     public static String getDefaultFileName() {
@@ -199,6 +230,23 @@ final class Util {
                         .withFile(path, name, "png")
                         .writeImage(bufferedImage))
                 .orException(() -> new IOException("error while saving image: " + path + File.separator + name));
+    }
+
+    public static Either<File, IOException> saveScenario(final Scenario scenario, final String path, final String name) {
+        return Either.value(() -> new FileServiceProvider()
+                        .withFile(path, name, "wds")
+                        .writeJson(scenario))
+                .orException(() -> new IOException("error while saving scenario: " + path + File.separator + name));
+    }
+
+    public static Either<Scenario, IOException> loadScenario(final File file) {
+        final ObjectMapper objectMapper = new ObjectMapper()
+                .registerModule(new ParameterNamesModule())
+                .registerModule(new Jdk8Module())
+                .registerModule(new JavaTimeModule());
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return Either.value(() -> objectMapper.readValue(file, Scenario.class))
+                .orException(() -> new IOException("error while loading scenario: " + file.getAbsolutePath()));
     }
 
     public static String pointToString(final PointInt point) {
