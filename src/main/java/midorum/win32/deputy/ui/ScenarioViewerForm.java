@@ -4,17 +4,16 @@ import midorum.win32.deputy.executor.ExecutorImpl;
 import midorum.win32.deputy.model.Displayable;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.TaskDispatcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import midorum.win32.deputy.model.UserMessageException;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.util.Objects;
 
 public class ScenarioViewerForm extends JPanel implements Displayable {
 
     private static final int PANE_MARGIN = 10;
-    private final Logger logger = LogManager.getLogger(this);
     private final TaskDispatcher taskDispatcher;
     private final State state;
     private final JLabel scenarioPathLabel;
@@ -30,12 +29,12 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
 
     ScenarioViewerForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
-        this.state = new State();
+        this.state = new State(new UiUtil(this));
         this.executor = new ExecutorImpl();
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
         this.scenarioDescriptionLabel = new JLabel();
-        Util.putComponentsToVerticalGrid(this,
+        SwingUtil.putComponentsToVerticalGrid(this,
                 3,
                 scenarioPathLabel,
                 scenarioTitleLabel,
@@ -103,9 +102,12 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
             if (scenario != null) {
                 lockForm();
                 executor.sendRoutineTask(scenario, throwable -> {
-                    final String message = "Error occurred while executing scenario";
-                    logger.error(message, throwable);
-                    JOptionPane.showMessageDialog(this, message);
+                    if (Objects.requireNonNull(throwable) instanceof UserMessageException ex) {
+                        state.getUtilities().reportThrowable(ex.getMessage(), ex);
+                    } else {
+                        state.getUtilities().reportThrowable("Error occurred while executing scenario", throwable);
+                    }
+                    unlockForm();
                 });
             }
         });

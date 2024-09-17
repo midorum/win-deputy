@@ -36,8 +36,8 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         timeoutField = new IntegerTextField(0, Integer.MAX_VALUE);
         timeoutField.setText("" + waiting.getTimeout());
         final JPanel timeoutPanel = new JPanel();
-        Util.putComponentsToHorizontalGrid(timeoutPanel, new JLabel("Timeout, seconds"), timeoutField);
-        Util.putComponentsToVerticalGrid(this,
+        SwingUtil.putComponentsToHorizontalGrid(timeoutPanel, new JLabel("Timeout, seconds"), timeoutField);
+        SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 descriptionField,
                 checksPane,
@@ -93,7 +93,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
     }
 
     private void fillChecksGrid() {
-        Util.putComponentsToVerticalGrid(checksPane, checks.toArray(Component[]::new));
+        SwingUtil.putComponentsToVerticalGrid(checksPane, checks.toArray(Component[]::new));
     }
 
     @Override
@@ -152,7 +152,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
 
         private CheckWrapperPane(final CheckEditPane checkEditPane) {
             this.checkEditPane = checkEditPane;
-            Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
         }
 
         public CheckWrapperPane(final State state) {

@@ -1,9 +1,8 @@
 package midorum.win32.deputy.ui;
 
+import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.TaskDispatcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
 import java.io.File;
@@ -16,7 +15,6 @@ import javax.swing.*;
 
 public class MainForm implements TaskDispatcher {
 
-    private final Logger logger = LogManager.getLogger(this);
     private final State state;
     private final JFrame frame;
 
@@ -24,13 +22,12 @@ public class MainForm implements TaskDispatcher {
         this.frame = new JFrame("Win Deputy");
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.frame.setPreferredSize(new Dimension(700, 500));
-        this.state = State.loadState().getOrHandleError(e -> {
+        final UiUtil utilities = new UiUtil(frame);
+        this.state = State.loadState(utilities).getOrHandleError(e -> {
             if (!(e instanceof FileNotFoundException)) {
-                final String message = "Error occurred while loading application state";
-                logger.error(message, e);
-                JOptionPane.showMessageDialog(frame, message);
+                utilities.reportThrowable("Error occurred while loading application state", e);
             }
-            return new State();
+            return new State(utilities);
         });
     }
 
@@ -47,7 +44,7 @@ public class MainForm implements TaskDispatcher {
     private void showForm(final Component form) {
         final Container contentPane = frame.getContentPane();
         contentPane.removeAll();
-        Util.putComponentsToVerticalGrid(contentPane, form);
+        SwingUtil.putComponentsToVerticalGrid(contentPane, form);
         contentPane.revalidate();
     }
 
@@ -88,17 +85,13 @@ public class MainForm implements TaskDispatcher {
     }
 
     private void askScenarioPath(final BiConsumer<Scenario, File> scenarioConsumer) {
-        Util.askExistFile(state.getWorkingDirectory(), frame).ifPresent(file -> loadScenarioFile(scenarioConsumer, file));
+        state.getUtilities().askExistFile(state.getWorkingDirectory()).ifPresent(file -> loadScenarioFile(scenarioConsumer, file));
     }
 
     private void loadScenarioFile(final BiConsumer<Scenario, File> scenarioConsumer, final File file) {
-        Util.loadScenario(file).consumeOrHandleError((Consumer<? super Scenario>) scenario ->
+        CommonUtil.loadScenario(file).consumeOrHandleError((Consumer<? super Scenario>) scenario ->
                         scenarioConsumer.accept(scenario, file),
-                e -> {
-                    final String message = "Error occurred while loading scenario";
-                    logger.error(message, e);
-                    JOptionPane.showMessageDialog(frame, message);
-                });
+                e -> state.getUtilities().reportThrowable("Error occurred while loading scenario", e));
     }
 
     private void updateState(final File file) {
@@ -107,9 +100,7 @@ public class MainForm implements TaskDispatcher {
         try {
             state.storeToFile();
         } catch (IOException e) {
-            final String message = "Error occurred while saving application state";
-            logger.error(message, e);
-            JOptionPane.showMessageDialog(frame, message);
+            state.getUtilities().reportThrowable("Error occurred while saving application state", e);
         }
     }
 

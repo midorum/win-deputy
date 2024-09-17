@@ -1,37 +1,97 @@
 package midorum.win32.deputy.ui;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
 import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.IWinUser;
+import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.common.Either;
+import midorum.win32.deputy.model.Scenario;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class Win32Utilities {
+class UiUtil {
 
-    private final Logger logger = LogManager.getLogger(this);
+    private final Logger logger = LogManager.getLogger("ui");
     private final Component parentComponent;
 
-    public Win32Utilities(final Component parentComponent) {
+    public UiUtil(final Component parentComponent) {
         this.parentComponent = parentComponent;
+    }
+
+    public Optional<File> askFile(final File currentDirectory, final boolean shouldExist) {
+        final JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setCurrentDirectory(currentDirectory);
+        if (fileChooser.showOpenDialog(parentComponent) == JFileChooser.APPROVE_OPTION) {
+            final File selectedFile = fileChooser.getSelectedFile();
+            if (shouldExist) {
+                if (selectedFile.exists()) return Optional.of(selectedFile);
+            } else {
+                if (!selectedFile.exists()
+                        || JOptionPane.showConfirmDialog(parentComponent,
+                        "Do you want to replace existing file?",
+                        "Warning",
+                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    return Optional.of(new File(CommonUtil.getWorkingDirectoryForPath(selectedFile.getParentFile()), selectedFile.getName()));
+                } else {
+                    return Optional.of(new File(CommonUtil.getWorkingDirectoryForPath(selectedFile.getParentFile()), CommonUtil.getDefaultFileName()));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<File> askNewFile(final File currentDirectory) {
+        return askFile(currentDirectory, false);
+    }
+
+    public Optional<File> askExistFile(final File currentDirectory) {
+        return askFile(currentDirectory, true);
+    }
+
+    public void askNewFileAndUpdateState(final State state, final Consumer<File> fileConsumer) {
+        askNewFile(state.getWorkingDirectory()).ifPresent(file -> {
+            final File workingDirectory = state.getWorkingDirectory();
+            final File selectedDirectory = file.getParentFile();
+            if (workingDirectory == null) {
+                state.setWorkingDirectory(selectedDirectory);
+            } else if (!Objects.equals(workingDirectory, selectedDirectory)) {
+                if (JOptionPane.showConfirmDialog(parentComponent,
+                        "Your selected directory does not match current working directory." +
+                                " It is not recommended to change working directory." +
+                                " Would you like to change working directory anyway?",
+                        "Warning",
+                        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    state.setWorkingDirectory(selectedDirectory);
+                }
+            }
+            fileConsumer.accept(file);
+        });
     }
 
     public void captureAndSaveRegion(final State state,
                                      final Consumer<File> resultConsumer) {
-        new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image -> Util.askNewFileAndUpdateState(state, file ->
-                        Util.saveImage(image, Util.getPathForImages(state.getWorkingDirectory()), file.getName())
+        new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image -> askNewFileAndUpdateState(state, file ->
+                        CommonUtil.saveImage(image, CommonUtil.getPathForImages(state.getWorkingDirectory()), file.getName())
                                 .consumeOrHandleError(resultConsumer,
-                                        e -> reportThrowable("Error occurred while saving image", e)), parentComponent),
+                                        e -> reportThrowable("Error occurred while saving image", e))),
                 () -> reportState("No rectangle was captured"))).display();
     }
 
@@ -40,9 +100,9 @@ class Win32Utilities {
             state.setWorkingDirectory(workingDirectory);
             successFileConsumer.accept(acceptedFile);
         };
-        Util.askExistFile(state.getWorkingDirectory(), parentComponent).ifPresent(file -> {
+        askExistFile(state.getWorkingDirectory()).ifPresent(file -> {
             final File workingDirectory = state.getWorkingDirectory();
-            final File selectedWorkingDirectory = Util.getWorkingDirectoryForPath(file.getParentFile());
+            final File selectedWorkingDirectory = CommonUtil.getWorkingDirectoryForPath(file.getParentFile());
             if (workingDirectory == null) {
                 updateStateAndDoJob.accept(selectedWorkingDirectory, file);
                 return;
@@ -110,18 +170,26 @@ class Win32Utilities {
                 e -> reportThrowable("Cannot get window extended styles", e)));
     }
 
-    private void reportThrowable(final String message, final Throwable t) {
+    public void reportThrowable(final String message, final Throwable t) {
         logger.error(message, t);
         JOptionPane.showMessageDialog(parentComponent, message);
     }
 
-    private void reportIllegalState(final String message) {
+    public void reportIllegalState(final String message) {
         logger.error(message);
         JOptionPane.showMessageDialog(parentComponent, message);
     }
 
-    private void reportState(final String message) {
+    public void reportState(final String message) {
         JOptionPane.showMessageDialog(parentComponent, message);
+    }
+
+    public void logThrowable(final String message, final Throwable t) {
+        logger.error(message, t);
+    }
+
+    public void logIllegalState(final String message) {
+        logger.error(message);
     }
 
 }

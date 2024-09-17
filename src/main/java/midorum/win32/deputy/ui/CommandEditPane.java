@@ -22,7 +22,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         commandTypeComboBox = createCommandTypeComboBox();
         commandTypeComboBox.setSelectedIndex(-1);
         commandDataPane = new JPanel();
-        Util.putComponentsToVerticalGrid(this, commandTypeComboBox, commandDataPane);
+        SwingUtil.putComponentsToVerticalGrid(this, commandTypeComboBox, commandDataPane);
     }
 
     public CommandEditPane(final Command command, final State state) {
@@ -93,7 +93,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
 
     private void repaintCommandData() {
         commandDataPane.removeAll();
-        Util.putComponentsToVerticalGrid(commandDataPane, -1, commandDataList.toArray(Component[]::new));
+        SwingUtil.putComponentsToVerticalGrid(commandDataPane, -1, commandDataList.toArray(Component[]::new));
         revalidate();
     }
 
@@ -144,7 +144,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
             this.availableDataTypes = availableDataTypes;
             this.sourceTypeEditPaneWrapper = new JPanel();
             this.dataTypeComboBox = createDataTypeComboBox(availableDataTypes);
-            Util.putComponentsToHorizontalGrid(this,
+            SwingUtil.putComponentsToHorizontalGrid(this,
                     createButtonPane(),
                     dataTypeComboBox,
                     sourceTypeEditPaneWrapper);
@@ -174,7 +174,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
             final SourceTypeEditPane sourceTypeEditPane = new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state);
             dataValueSupplier = sourceTypeEditPane;
             sourceTypeEditPaneWrapper.removeAll();
-            Util.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
+            SwingUtil.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
             sourceTypeEditPaneWrapper.revalidate();
         }
 

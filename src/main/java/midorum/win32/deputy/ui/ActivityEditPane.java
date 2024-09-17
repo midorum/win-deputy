@@ -52,7 +52,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 .map(waiting -> new WaitingEditWrapperPane(waiting, state))
                 .orElse(new WaitingEditWrapperPane(state));
         waitingEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
-        Util.putComponentsToVerticalGrid(this,
+        SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 titleField,
                 descriptionField,
@@ -154,11 +154,11 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     }
 
     private void fillChecksGrid() {
-        Util.putComponentsToVerticalGrid(checksPane, checks.toArray(Component[]::new));
+        SwingUtil.putComponentsToVerticalGrid(checksPane, checks.toArray(Component[]::new));
     }
 
     private void fillCommandsGrid() {
-        Util.putComponentsToVerticalGrid(commandsPane, commands.toArray(Component[]::new));
+        SwingUtil.putComponentsToVerticalGrid(commandsPane, commands.toArray(Component[]::new));
     }
 
     @Override
@@ -224,7 +224,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
         private CheckWrapperPane(final CheckEditPane checkEditPane) {
             this.checkEditPane = checkEditPane;
-            Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
         }
 
         public CheckWrapperPane(final State state) {
@@ -278,7 +278,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
         private CommandWrapperPane(final CommandEditPane commandEditPane) {
             this.commandEditPane = commandEditPane;
-            Util.putComponentsToVerticalGrid(this, -1, createButtonsPane(), commandEditPane);
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(), commandEditPane);
         }
 
         public CommandWrapperPane(final State state) {
@@ -337,7 +337,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         public WaitingEditWrapperPane(final State state) {
             this.state = state;
             this.container = new JPanel();
-            Util.putComponentsToVerticalGrid(this,
+            SwingUtil.putComponentsToVerticalGrid(this,
                     createButtonsPane(),
                     container);
         }
@@ -353,7 +353,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
             addWaitingButton.addActionListener(e -> addWaiting(new Waiting(), state));
             deleteWaitingButton = new Button("-");
             deleteWaitingButton.addActionListener(e -> deleteWaiting());
-            Util.putComponentsToHorizontalGrid(panel,
+            SwingUtil.putComponentsToHorizontalGrid(panel,
                     0,
                     new JLabel("Waiting"),
                     addWaitingButton,
@@ -363,7 +363,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
         private void addWaiting(final Waiting waiting, final State state) {
             waitingEditPane = new WaitingEditPane(waiting, state);
-            Util.putComponentsToVerticalGrid(container, waitingEditPane);
+            SwingUtil.putComponentsToVerticalGrid(container, waitingEditPane);
             addWaitingButton.setVisible(false);
             deleteWaitingButton.setVisible(true);
             revalidate();

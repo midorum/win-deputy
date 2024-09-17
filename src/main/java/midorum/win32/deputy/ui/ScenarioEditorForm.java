@@ -1,12 +1,11 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.IllegalInputException;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.Displayable;
 import midorum.win32.deputy.model.TaskDispatcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,7 +15,6 @@ import java.util.function.Consumer;
 class ScenarioEditorForm extends JPanel implements Displayable {
 
     private static final int PANE_MARGIN = 10;
-    private final Logger logger = LogManager.getLogger(this);
     private final TaskDispatcher taskDispatcher;
     private final State state;
     private final SupplierThrowing<Scenario, IllegalInputException> scenarioSupplier;
@@ -24,12 +22,12 @@ class ScenarioEditorForm extends JPanel implements Displayable {
 
     private ScenarioEditorForm(final TaskDispatcher taskDispatcher, final Scenario scenario) {
         this.taskDispatcher = taskDispatcher;
-        this.state = new State();
+        this.state = new State(new UiUtil(this));
         final ScenarioEditPane scenarioEditPane = scenario != null ? new ScenarioEditPane(scenario, state) : new ScenarioEditPane(state);
         this.scenarioSupplier = scenarioEditPane;
         scenarioEditPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
         scenarioPathLabel = new JLabel();
-        Util.putComponentsToVerticalGrid(this,
+        SwingUtil.putComponentsToVerticalGrid(this,
                 1,
                 scenarioPathLabel,
                 scenarioEditPane,
@@ -95,27 +93,22 @@ class ScenarioEditorForm extends JPanel implements Displayable {
             if (!askFile && state.getWorkingDirectory() != null && state.getScenarioName() != null) {
                 saveScenarioFile(scenario, state.getScenarioName());
             } else {
-                Util.askNewFileAndUpdateState(state, file -> saveScenarioFile(scenario, file.getName()), this);
+                state.getUtilities().askNewFileAndUpdateState(state, file -> saveScenarioFile(scenario, file.getName()));
             }
         } catch (IllegalInputException ex) {
-            logger.error(ex.getMessage(), ex);
-            JOptionPane.showMessageDialog(this, ex.getMessage());
+            state.getUtilities().reportThrowable(ex.getMessage(), ex);
         }
     }
 
     private void saveScenarioFile(final Scenario scenario, final String scenarioName) {
-        Util.saveScenario(scenario, Util.getPathForScenarios(state.getWorkingDirectory()), scenarioName)
+        CommonUtil.saveScenario(scenario, CommonUtil.getPathForScenarios(state.getWorkingDirectory()), scenarioName)
                 .consumeOrHandleError((Consumer<? super File>) f -> {
                             final String scenarioFilePath = f.getAbsolutePath();
                             state.setScenarioName(f.getName());
                             scenarioPathLabel.setText(scenarioFilePath);
                             JOptionPane.showMessageDialog(this, "Scenario saved as " + scenarioFilePath);
                         },
-                        ex -> {
-                            final String message = "Error occurred while saving scenario";
-                            logger.error(message, ex);
-                            JOptionPane.showMessageDialog(this, message);
-                        });
+                        ex -> state.getUtilities().reportThrowable("Error occurred while saving scenario", ex));
     }
 
     @Override

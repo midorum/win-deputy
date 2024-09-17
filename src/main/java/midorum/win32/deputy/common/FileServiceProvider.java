@@ -1,4 +1,4 @@
-package midorum.win32.deputy.ui;
+package midorum.win32.deputy.common;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;

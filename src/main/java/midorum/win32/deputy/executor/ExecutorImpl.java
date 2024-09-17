@@ -21,7 +21,7 @@ public class ExecutorImpl implements IExecutor {
                 new CatchingRunnable(
                         new RoutineScenarioProcessor(Validator.checkNotNull(scenario).orThrowForSymbol("scenario")),
                         Validator.checkNotNull(errorHandler).orThrowForSymbol("task error handler")),
-                5,
+                0,
                 1,
                 TimeUnit.SECONDS);
     }

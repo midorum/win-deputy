@@ -46,8 +46,8 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         scrollPane.setWheelScrollingEnabled(true);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 //        scrollPane.getViewport().addChangeListener(e -> System.out.println("Viewport changed: " + e));
-        scenarioTypeEditPane = new ScenarioTypeEditPane(scenarioType);
-        Util.putComponentsToVerticalGrid(this,
+        scenarioTypeEditPane = new ScenarioTypeEditPane(scenarioType, state);
+        SwingUtil.putComponentsToVerticalGrid(this,
                 new double[]{0.0, 0.0, 0.0, 0.0, 0.5, 0.0},
                 new JLabel("Title"),
                 titleField,
@@ -102,7 +102,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
     }
 
     private void fillActivitiesGrid() {
-        Util.putComponentsToVerticalGrid(gridPane, -1, activities.toArray(Component[]::new));
+        SwingUtil.putComponentsToVerticalGrid(gridPane, -1, activities.toArray(Component[]::new));
     }
 
     @Override
@@ -159,7 +159,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         private ActivityWrapperPane(final ActivityEditPane activityEditPane) {
             this.activityEditPane = activityEditPane;
             setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
-            Util.putComponentsToVerticalGrid(this, createButtonsPane(), activityEditPane);
+            SwingUtil.putComponentsToVerticalGrid(this, createButtonsPane(), activityEditPane);
         }
 
         public ActivityWrapperPane(final State state) {
@@ -211,13 +211,13 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private final JComboBox<ScenarioType> checkTypeComboBox;
 
-        public ScenarioTypeEditPane(final ScenarioType scenarioType) {
+        public ScenarioTypeEditPane(final ScenarioType scenarioType, final State state) {
             this.checkTypeComboBox = new JComboBox<>(ScenarioType.values());
             if (scenarioType != null)
                 checkTypeComboBox.setSelectedItem(scenarioType);
             else
                 checkTypeComboBox.setSelectedIndex(-1);
-            Util.putComponentsToVerticalGrid(this, checkTypeComboBox);
+            SwingUtil.putComponentsToVerticalGrid(this, checkTypeComboBox);
         }
 
         public ScenarioType getScenarioType() {

@@ -25,7 +25,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
         checkTypeComboBox = createCheckTypeComboBox();
         checkTypeComboBox.setSelectedIndex(-1);
         checkDataPane = new JPanel();
-        Util.putComponentsToVerticalGrid(this, checkTypeComboBox, checkDataPane);
+        SwingUtil.putComponentsToVerticalGrid(this, checkTypeComboBox, checkDataPane);
     }
 
     CheckEditPane(final Check check, final State state) {
@@ -97,7 +97,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
 
     private void repaintCheckData() {
         checkDataPane.removeAll();
-        Util.putComponentsToVerticalGrid(checkDataPane, -1, checkDataList.toArray(Component[]::new));
+        SwingUtil.putComponentsToVerticalGrid(checkDataPane, -1, checkDataList.toArray(Component[]::new));
         revalidate();
     }
 
@@ -148,7 +148,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
             this.availableDataTypes = availableDataTypes;
             this.sourceTypeEditPaneWrapper = new JPanel();
             this.dataTypeComboBox = createDataTypeComboBox(availableDataTypes);
-            Util.putComponentsToHorizontalGrid(this,
+            SwingUtil.putComponentsToHorizontalGrid(this,
                     createButtonPane(),
                     dataTypeComboBox,
                     sourceTypeEditPaneWrapper);
@@ -178,7 +178,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
             final SourceTypeEditPane sourceTypeEditPane = new SourceTypeEditPane(checkDataType.getSourceTypes(), dataValue, state);
             dataValueSupplier = sourceTypeEditPane;
             sourceTypeEditPaneWrapper.removeAll();
-            Util.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
+            SwingUtil.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
             sourceTypeEditPaneWrapper.revalidate();
         }
 

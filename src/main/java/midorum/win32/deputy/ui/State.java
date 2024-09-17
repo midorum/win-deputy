@@ -15,6 +15,15 @@ class State {
     public static final String SCENARIO_NAME_PROPERTY_NAME = "scenarioName";
     private final AtomicReference<File> workingDirectory = new AtomicReference<>();
     private final AtomicReference<String> scenarioName = new AtomicReference<>();
+    private final UiUtil utilities;
+
+    State(final UiUtil utilities) {
+        this.utilities = utilities;
+    }
+
+    public UiUtil getUtilities() {
+        return utilities;
+    }
 
     public File getWorkingDirectory() {
         return workingDirectory.get();
@@ -32,11 +41,11 @@ class State {
         this.scenarioName.set(scenarioName);
     }
 
-    public static Either<State, IOException> loadState() {
+    public static Either<State, IOException> loadState(final UiUtil utilities) {
         return Either.value(() -> FileInputStream.getInstance().useWithInputStream(STATE_FILE_NAME, inputStream -> {
             Properties appProps = new Properties();
             appProps.load(inputStream);
-            final State state = new State();
+            final State state = new State(utilities);
             state.setWorkingDirectory(new File(appProps.getProperty(WORKING_DIRECTORY_PROPERTY_NAME)));
             state.setScenarioName(appProps.getProperty(SCENARIO_NAME_PROPERTY_NAME));
             return state;

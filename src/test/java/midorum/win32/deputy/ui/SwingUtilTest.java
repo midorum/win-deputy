@@ -17,7 +17,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class UtilTest {
+class SwingUtilTest {
 
     @Test
     void stringToPoint() {
