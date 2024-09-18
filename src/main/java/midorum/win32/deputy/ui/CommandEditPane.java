@@ -40,7 +40,9 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
             final CommandType selectedItem = (CommandType) commandType.getSelectedItem();
             if (selectedItem != null) {
                 commandDataList.clear();
-                commandDataList.add(new CommandDataTypePane(getAvailableDataTypes(selectedItem)));
+                if (!selectedItem.mandatory().isEmpty() || !selectedItem.optional().isEmpty()) {
+                    commandDataList.add(new CommandDataTypePane(getAvailableDataTypes(selectedItem)));
+                }
                 repaintCommandData();
             }
         });
@@ -127,7 +129,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         }
         if (!Command.validateCommandData(commandType, data)) {
             commandDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal check data");
+            throw new IllegalInputException("Illegal command data");
         }
         commandDataPane.setBorder(null);
         return data;

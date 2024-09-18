@@ -11,8 +11,7 @@ import midorum.win32.deputy.model.Scenario;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +28,15 @@ public final class CommonUtil {
         return -1;
     }
 
+    @SafeVarargs
+    public static <T> List<T> concatLists(List<T>... lists) {
+        int size = 0;
+        for (List<T> list : lists) size += list.size();
+        final ArrayList<T> ts = new ArrayList<>(size);
+        for (List<T> list : lists) ts.addAll(list);
+        return Collections.unmodifiableList(ts);
+    }
+
     public static File getWorkingDirectoryForPath(final File file) {
         final String path = file.getAbsolutePath();
         return path.endsWith("shots") ? file.getParentFile() : file;
@@ -38,12 +46,20 @@ public final class CommonUtil {
         return workingDirectory != null ? workingDirectory.getAbsolutePath() + File.separator + "shots" : "shots";
     }
 
+    public static String getPathForWrongShots(final File workingDirectory) {
+        return workingDirectory != null ? workingDirectory.getAbsolutePath() + File.separator + "wrong_shots" : "wrong_shots";
+    }
+
     public static String getPathForScenarios(final File workingDirectory) {
         return workingDirectory != null ? workingDirectory.getAbsolutePath() : "";
     }
 
     public static String getDefaultFileName() {
         return "_" + System.currentTimeMillis();
+    }
+
+    public static String getFileNameForWrongShot() {
+        return "shot_" + System.currentTimeMillis();
     }
 
     public static String pointToString(final PointInt point) {
@@ -59,9 +75,13 @@ public final class CommonUtil {
 
     public static Either<File, IOException> saveImage(final BufferedImage bufferedImage, final String path, final String name) {
         return Either.value(() -> new FileServiceProvider()
-                        .withFile(path, name, "png")
+                        .withFile(path, name, getImageFormat())
                         .writeImage(bufferedImage))
                 .orException(() -> new IOException("error while saving image: " + path + File.separator + name));
+    }
+
+    public static String getImageFormat() {
+        return "png";
     }
 
     public static Either<File, IOException> saveScenario(final Scenario scenario, final String path, final String name) {
@@ -79,6 +99,23 @@ public final class CommonUtil {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return Either.value(() -> objectMapper.readValue(file, Scenario.class))
                 .orException(() -> new IOException("error while loading scenario: " + file.getAbsolutePath()));
+    }
+
+    public static int[] imageToArray(final BufferedImage image) {
+        return image.getRGB(
+                image.getMinX(),
+                image.getMinY(),
+                image.getWidth(),
+                image.getHeight(),
+                null,
+                0,
+                image.getWidth());
+    }
+
+    public static BufferedImage arrayToImage(final int[] arr, final int width, final int height) {
+        final BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        image.setRGB(0, 0, width, height, arr, 0, width);
+        return image;
     }
 
 }

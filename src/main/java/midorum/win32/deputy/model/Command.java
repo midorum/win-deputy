@@ -29,6 +29,7 @@ public class Command {
 
     public static boolean validateCommandData(final CommandType commandType, final Map<CommandDataType, String> data) {
         final List<List<CommandDataType>> mandatory = commandType.mandatory();
+        if (mandatory.isEmpty() && data.isEmpty()) return true;
         boolean result = false;
         for (List<CommandDataType> l : mandatory)
             if (l.stream().anyMatch(data::containsKey))

@@ -11,9 +11,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
-class FileServiceProvider {
+public class FileServiceProvider {
 
-    FileServiceProvider() {
+    public FileServiceProvider() {
     }
 
     public FileService withFile(final String path, final String name, final String format) throws IOException {
@@ -38,12 +38,17 @@ class FileServiceProvider {
             this.file = new File((path != null ? path + File.separator : "")
                     + safeName
                     + (safeName.endsWith(fileExtension) ? "" : fileExtension));
-            if (!file.getParentFile().exists() && !file.mkdirs()) throw new IOException("Cannot create directories: " + file.getAbsolutePath());
+            if (!file.getParentFile().exists() && !file.mkdirs())
+                throw new IOException("Cannot create directories: " + file.getAbsolutePath());
         }
 
         public File writeImage(final BufferedImage image) throws IOException {
             ImageIO.write(image, format, file);
             return file;
+        }
+
+        public BufferedImage readImage() throws IOException {
+            return ImageIO.read(file);
         }
 
         public File writeJson(final Object object) throws IOException {

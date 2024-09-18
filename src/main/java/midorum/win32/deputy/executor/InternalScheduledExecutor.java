@@ -24,9 +24,11 @@ class InternalScheduledExecutor {
         logger.info("task submitted");
     }
 
-    public void cancelCurrentTask() {
-        cancelTask();
-        logger.info("task cancelled");
+    public boolean cancelCurrentTask() {
+        final boolean result = cancelTask();
+        if (result)
+            logger.info("task cancelled");
+        return result;
     }
 
     private synchronized void submitTask(final Runnable command, final long initialDelay, final long delay, final TimeUnit unit) {

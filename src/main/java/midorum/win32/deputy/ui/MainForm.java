@@ -1,5 +1,8 @@
 package midorum.win32.deputy.ui;
 
+import com.midorum.win32api.hook.GlobalKeyHook;
+import com.midorum.win32api.hook.KeyHookHelper;
+import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.TaskDispatcher;

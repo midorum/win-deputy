@@ -8,8 +8,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.struct.PointInt;
+import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.*;
-import midorum.win32.deputy.ui.editor.Util;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -21,14 +21,14 @@ class SwingUtilTest {
 
     @Test
     void stringToPoint() {
-        final Optional<PointInt> result = Util.stringToPoint("(1,2)");
+        final Optional<PointInt> result = CommonUtil.stringToPoint("(1,2)");
         assertTrue(result.isPresent());
         assertEquals(new PointInt(1, 2), result.get());
     }
 
     @Test
     void stringToPoint2() {
-        final Optional<PointInt> result = Util.stringToPoint("(533,962)");
+        final Optional<PointInt> result = CommonUtil.stringToPoint("(533,962)");
         assertTrue(result.isPresent());
         assertEquals(new PointInt(533, 962), result.get());
     }

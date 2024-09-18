@@ -6,6 +6,7 @@ import java.util.List;
 import static midorum.win32.deputy.model.CommandDataType.*;
 
 public enum CommandType {
+    minimizeAllWindows(Collections.EMPTY_LIST, Collections.EMPTY_LIST),
     mouseLeftClick(Constants.MOUSE_CLICK_MANDATORY_COMMAND_DATA_TYPES, Collections.EMPTY_LIST),
     mouseDoubleLeftClick(Constants.MOUSE_CLICK_MANDATORY_COMMAND_DATA_TYPES, Collections.EMPTY_LIST),
     mouseRightClick(Constants.MOUSE_CLICK_MANDATORY_COMMAND_DATA_TYPES, Collections.EMPTY_LIST),

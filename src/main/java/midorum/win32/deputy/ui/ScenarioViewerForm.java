@@ -1,5 +1,8 @@
 package midorum.win32.deputy.ui;
 
+import com.midorum.win32api.hook.GlobalKeyHook;
+import com.midorum.win32api.hook.KeyHookHelper;
+import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.executor.ExecutorImpl;
 import midorum.win32.deputy.model.Displayable;
 import midorum.win32.deputy.model.Scenario;
@@ -10,6 +13,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ScenarioViewerForm extends JPanel implements Displayable {
 
@@ -26,6 +30,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     private final ExecutorImpl executor;
     private Button loadScenarioButton;
     private Button createScenarioButton;
+    private final AtomicReference<GlobalKeyHook> cancelKeyHook = new AtomicReference<>();
 
     ScenarioViewerForm(final TaskDispatcher taskDispatcher) {
         this.taskDispatcher = taskDispatcher;
@@ -101,7 +106,9 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         btn.addActionListener(e -> {
             if (scenario != null) {
                 lockForm();
-                executor.sendRoutineTask(scenario, throwable -> {
+                final GlobalKeyHook oldHook = cancelKeyHook.getAndSet(setCancelTaskHook());
+                if (oldHook != null) oldHook.unhook();
+                executor.sendRoutineTask(state.getWorkingDirectory(), scenario, throwable -> {
                     if (Objects.requireNonNull(throwable) instanceof UserMessageException ex) {
                         state.getUtilities().reportThrowable(ex.getMessage(), ex);
                     } else {
@@ -118,6 +125,10 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         final Button btn = new Button("Stop scenario");
         btn.addActionListener(e -> {
             executor.cancelCurrentTask();
+            final GlobalKeyHook cancelKeyHook = this.cancelKeyHook.get();
+            if (cancelKeyHook != null) {
+                cancelKeyHook.unhook();
+            }
             unlockForm();
         });
         return btn;
@@ -137,6 +148,21 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         createScenarioButton.setEnabled(true);
         runScenarioButton.setEnabled(true);
         stopScenarioButton.setEnabled(false);
+    }
+
+    private GlobalKeyHook setCancelTaskHook() {
+        return KeyHookHelper.getInstance().setGlobalHook(
+                new KeyHookHelper.KeyEventBuilder().virtualKey(Win32VirtualKey.VK_S).withControl().withShift().build(),
+                KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
+                keyEvent -> {
+                    final boolean result = executor.cancelCurrentTask();
+                    if (result)
+                        unlockForm();
+                    return result;// release the hook when task cancelled
+                }, throwable -> {
+                    state.getUtilities().logThrowable("error occurred while cancel executing task", throwable);
+                    return true; // release hook
+                });
     }
 
     @Override

@@ -1,10 +1,13 @@
 package midorum.win32.deputy.model;
 
+import java.io.File;
 import java.util.function.Consumer;
 
 public interface IExecutor {
 
-    void sendRoutineTask(final Scenario scenario, final Consumer<Throwable> errorHandler);
+    String LOGGER_NAME = "executor";
 
-    void cancelCurrentTask();
+    void sendRoutineTask(final File workingDirectory, final Scenario scenario, final Consumer<Throwable> errorHandler);
+
+    boolean cancelCurrentTask();
 }

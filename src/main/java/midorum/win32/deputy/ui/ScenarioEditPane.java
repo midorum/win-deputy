@@ -70,6 +70,17 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         repaintActivities();
     }
 
+    private void addActivityCopyBelow(final ActivityWrapperPane activityPane) {
+        try {
+            final Activity activity = activityPane.get();
+            final int currentIndex = activities.indexOf(activityPane);
+            activities.add(currentIndex + 1, new ActivityWrapperPane(new ActivityEditPane(activity, state)));
+            repaintActivities();
+        } catch (IllegalInputException e) {
+           state.getUtilities().reportIllegalState("You may copy only properly filled activities");
+        }
+    }
+
     private void deleteActivity(final ActivityWrapperPane activityPane) {
         if (activities.size() == 1) {
             JOptionPane.showMessageDialog(this, "You cannot delete last activity from scenario");
@@ -173,6 +184,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
+            panel.add(createAddCopyButton());
             panel.add(createDeleteButton());
             return panel;
         }
@@ -180,6 +192,12 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         private Button createAddButton() {
             final Button btn = new Button("+");
             btn.addActionListener(e -> addActivityBelow(this));
+            return btn;
+        }
+
+        private Button createAddCopyButton() {
+            final Button btn = new Button("++");
+            btn.addActionListener(e -> addActivityCopyBelow(this));
             return btn;
         }
 
