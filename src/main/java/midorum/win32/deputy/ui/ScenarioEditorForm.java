@@ -66,37 +66,49 @@ class ScenarioEditorForm extends JPanel implements Displayable {
 
     private Button createSaveButton() {
         final Button btn = new Button("Save");
-        btn.addActionListener(e -> getScenarioAndSave(false));
+        btn.addActionListener(e -> {
+            try {
+                collectScenarioAndSave(false);
+            } catch (IllegalInputException ex) {
+                state.getUtilities().reportThrowable(ex.getMessage(), ex);
+            }
+        });
         return btn;
     }
 
     private Button createSaveAsButton() {
         final Button btn = new Button("Save As");
-        btn.addActionListener(e -> getScenarioAndSave(true));
+        btn.addActionListener(e -> {
+            try {
+                collectScenarioAndSave(true);
+            } catch (IllegalInputException ex) {
+                state.getUtilities().reportThrowable(ex.getMessage(), ex);
+            }
+        });
         return btn;
     }
 
     private Button createSaveAndCloseButton() {
         final Button btn = new Button("Save and close");
         btn.addActionListener(e -> {
-            getScenarioAndSave(false);
-            if (state.getWorkingDirectory() != null && state.getScenarioName() != null) {
-                taskDispatcher.endScenarioEditing(new File(state.getWorkingDirectory(), state.getScenarioName()).getAbsolutePath());
+            try {
+                collectScenarioAndSave(false);
+                if (state.getWorkingDirectory() != null && state.getScenarioName() != null) {
+                    taskDispatcher.endScenarioEditing(new File(state.getWorkingDirectory(), state.getScenarioName()).getAbsolutePath());
+                }
+            } catch (IllegalInputException ex) {
+                state.getUtilities().reportThrowable(ex.getMessage(), ex);
             }
         });
         return btn;
     }
 
-    private void getScenarioAndSave(final boolean askFile) {
-        try {
-            final Scenario scenario = scenarioSupplier.get();
-            if (!askFile && state.getWorkingDirectory() != null && state.getScenarioName() != null) {
-                saveScenarioFile(scenario, state.getScenarioName());
-            } else {
-                state.getUtilities().askNewFileAndUpdateState(state, file -> saveScenarioFile(scenario, file.getName()));
-            }
-        } catch (IllegalInputException ex) {
-            state.getUtilities().reportThrowable(ex.getMessage(), ex);
+    private void collectScenarioAndSave(final boolean askFile) throws IllegalInputException {
+        final Scenario scenario = scenarioSupplier.get();
+        if (!askFile && state.getWorkingDirectory() != null && state.getScenarioName() != null) {
+            saveScenarioFile(scenario, state.getScenarioName());
+        } else {
+            state.getUtilities().askNewFileAndUpdateState(state, file -> saveScenarioFile(scenario, file.getName()));
         }
     }
 

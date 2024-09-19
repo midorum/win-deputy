@@ -19,6 +19,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     private final JPanel checksPane;
     private final JPanel commandsPane;
     private final WaitingEditWrapperPane waitingEditWrapperPane;
+    private JCheckBox repeatableCheckBox;
 
     ActivityEditPane(final Activity activity, final State state) {
         this.state = state;
@@ -52,10 +53,12 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 .map(waiting -> new WaitingEditWrapperPane(waiting, state))
                 .orElse(new WaitingEditWrapperPane(state));
         waitingEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+        repeatableCheckBox = new JCheckBox("repeatable", activity.isRepeatable());
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 titleField,
                 descriptionField,
+                repeatableCheckBox,
                 checksPane,
                 commandsPane,
                 waitingEditWrapperPane);
@@ -167,7 +170,8 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 descriptionField.getText(),
                 validateAndGetChecks(),
                 validateAndGetCommands(),
-                waitingEditWrapperPane.get());
+                waitingEditWrapperPane.get(),
+                repeatableCheckBox.isSelected());
     }
 
     private String validateAndGetActivityTitle() throws IllegalInputException {

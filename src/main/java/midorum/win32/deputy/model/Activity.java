@@ -27,13 +27,15 @@ public class Activity {
     private final List<Check> checks;
     private final List<Command> commands;
     private final Waiting waiting;
+    private final boolean repeatable;
 
-    public Activity(String title, String description, List<Check> checks, List<Command> commands, Waiting waiting) {
+    public Activity(String title, String description, List<Check> checks, List<Command> commands, Waiting waiting, final boolean repeatable) {
         this.title = title;
         this.description = description;
         this.checks = List.copyOf(checks); // unmodifiable list
         this.commands = List.copyOf(commands); // unmodifiable list
         this.waiting = waiting;
+        this.repeatable = repeatable;
     }
 
     public Activity() {
@@ -42,6 +44,7 @@ public class Activity {
         this.checks = null;
         this.commands = null;
         this.waiting = null;
+        this.repeatable = false;
     }
 
     public static boolean validateCheckListItem(final Check check) {
@@ -78,6 +81,10 @@ public class Activity {
 
     public Optional<Waiting> getWaiting() {
         return Optional.ofNullable(this.waiting);
+    }
+
+    public boolean isRepeatable() {
+        return repeatable;
     }
 
     @Override

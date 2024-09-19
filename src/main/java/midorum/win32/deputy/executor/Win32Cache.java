@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Win32Cache {
 
+    public static final int DEVIATION = 1;
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final File workingDirectory;
 
@@ -66,7 +67,7 @@ public class Win32Cache {
                                 CommonUtil.getImageFormat()).readImage();
                         final Stamp stamp = new Stamp(key, stampImage);
                         final BufferedImage screenImage = Win32System.getInstance().getScreenShotMaker().takeWholeScreen();
-                        final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, 1);
+                        final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, DEVIATION);
                         final List<StampSeeker.Result> stampSeekResults = stampSeeker.perform();
                         if(stampSeekResults.isEmpty()) return Optional.empty();
                         return stampSeekResults.stream()
