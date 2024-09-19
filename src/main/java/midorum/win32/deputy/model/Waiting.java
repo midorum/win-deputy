@@ -9,18 +9,15 @@ public class Waiting {
 
     private final String description;
     private final List<Check> checks;
-    private final long timeout;
 
-    public Waiting(String description, List<Check> checks, long timeout) {
+    public Waiting(String description, List<Check> checks) {
         this.description = description;
-        this.checks = checks;
-        this.timeout = timeout;
+        this.checks = List.copyOf(checks); // unmodifiable list
     }
 
     public Waiting() {
         this.description = null;
         this.checks = null;
-        this.timeout = 0L;
     }
 
     public static boolean validateCheckListItem(final Check check) {
@@ -39,16 +36,11 @@ public class Waiting {
         return this.checks;
     }
 
-    public long getTimeout() {
-        return this.timeout;
-    }
-
     @Override
     public String toString() {
         return "{" +
             " description='" + getDescription() + "'" +
             ", checks='" + getChecks() + "'" +
-            ", timeout='" + getTimeout() + "'" +
             "}";
     }
 

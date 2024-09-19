@@ -26,15 +26,15 @@ public class Activity {
     private final String description;
     private final List<Check> checks;
     private final List<Command> commands;
-    private final Waiting waiting;
+    private final WaitingList waitingList;
     private final boolean repeatable;
 
-    public Activity(String title, String description, List<Check> checks, List<Command> commands, Waiting waiting, final boolean repeatable) {
+    public Activity(String title, String description, List<Check> checks, List<Command> commands, WaitingList waitingList, final boolean repeatable) {
         this.title = title;
         this.description = description;
         this.checks = List.copyOf(checks); // unmodifiable list
         this.commands = List.copyOf(commands); // unmodifiable list
-        this.waiting = waiting;
+        this.waitingList = waitingList;
         this.repeatable = repeatable;
     }
 
@@ -43,7 +43,7 @@ public class Activity {
         this.description = null;
         this.checks = null;
         this.commands = null;
-        this.waiting = null;
+        this.waitingList = null;
         this.repeatable = false;
     }
 
@@ -79,8 +79,8 @@ public class Activity {
         return this.commands;
     }
 
-    public Optional<Waiting> getWaiting() {
-        return Optional.ofNullable(this.waiting);
+    public Optional<WaitingList> getWaitingList() {
+        return Optional.ofNullable(this.waitingList);
     }
 
     public boolean isRepeatable() {
@@ -94,7 +94,7 @@ public class Activity {
                 ", description='" + description + '\'' +
                 ", checks=" + checks +
                 ", commands=" + commands +
-                ", waiting=" + waiting +
+                ", waitingList=" + waitingList +
                 '}';
     }
 }

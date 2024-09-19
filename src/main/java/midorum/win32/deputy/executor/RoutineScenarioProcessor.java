@@ -4,7 +4,6 @@ import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.facade.exception.Win32ApiException;
 import dma.util.Delay;
 import dma.util.DurationFormatter;
-import dma.util.TimeMeasurer2;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
@@ -28,7 +27,7 @@ class RoutineScenarioProcessor implements Runnable {
     private final Win32Cache cache;
     private final CheckProcessor checkProcessor;
     private final CommandProcessor commandProcessor;
-    private final AtomicReference<Waiting> waiting = new AtomicReference<>();
+    private final AtomicReference<WaitingList> waitingList = new AtomicReference<>();
     private final AtomicLong waitUntil = new AtomicLong(0);
     private final AtomicInteger waitIndex = new AtomicInteger(0);
     private final AtomicInteger repeatableIndex = new AtomicInteger(0);
@@ -47,16 +46,14 @@ class RoutineScenarioProcessor implements Runnable {
         try {
             logger.info("routine task started");
             //TODO check user activity on keyboard
-            final Waiting setWaiting = waiting.get();
-            if (!verifyWaitingChecks(setWaiting) && System.currentTimeMillis() < waitUntil.longValue()) {
-                logger.info("waiting \"{}\" has not passed checks and waiting time does not expired - interrupt routine task",
-                        setWaiting.getDescription());
+            final WaitingList setWaitingList = waitingList.get();
+            if (!verifyWaitingList(setWaitingList) && System.currentTimeMillis() < waitUntil.longValue()) {
+                logger.info("waiting list has not passed checks and waiting time does not expired - interrupt routine task");
                 cache.invalidate();
                 return;
-            } else if(setWaiting != null) {
-                logger.info("waiting \"{}\" has done - continue performing activities",
-                        setWaiting.getDescription());
-                waiting.set(null);
+            } else if (setWaitingList != null) {
+                logger.info("waiting has done - continue performing activities");
+                waitingList.set(null);
                 waitUntil.set(0);
                 waitIndex.set(0);
             }
@@ -64,12 +61,12 @@ class RoutineScenarioProcessor implements Runnable {
             boolean wasPerformed = false;
             for (int i = 0; i < activities.size(); i++) {
                 final Activity activity = activities.get(i);
-                logger.info("verifying activity checks: {} ({})", i, activity.getTitle());
+                logger.info("verifying activity checks: {} (\"{}\")", i, activity.getTitle());
                 if (!verifyChecks(activity.getChecks())) {
                     logger.info("activity \"{}\" ({}) has not passed checks and skip", i, activity.getTitle());
                     continue;
                 }
-                logger.info("activity \"{}\" ({}) has passed checks and start perform commands", i, activity.getTitle());
+                logger.info("activity {} (\"{}\") has passed checks and start perform commands", i, activity.getTitle());
                 performCommands(activity.getCommands());
                 final int currentIndex = i;
                 if (repeatableCounter.updateAndGet(operand ->
@@ -79,13 +76,15 @@ class RoutineScenarioProcessor implements Runnable {
                             " Maybe you've missed something. Interrupt scenario execution");
                 }
                 final int index = i;
-                activity.getWaiting().ifPresent(w -> {
-                    waiting.set(w);
-                    final long waitUntilValue = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(w.getTimeout(), TimeUnit.SECONDS);
+                activity.getWaitingList().ifPresent(waitingList -> {
+                    this.waitingList.set(waitingList);
+                    final long waitUntilValue = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(waitingList.getTimeout(), TimeUnit.SECONDS);
                     waitUntil.set(waitUntilValue);
                     waitIndex.set(index);
-                    logger.info("activity \"{}\" ({}) set waiting \"{}\" until {}", index, activity.getTitle(),
-                            w.getDescription(),
+                    logger.info("activity {} (\"{}\") set waiting list \"{}\" until {}",
+                            index,
+                            activity.getTitle(),
+                            waitingList.getList().stream().map(Waiting::getDescription).toList(),
                             Instant.ofEpochMilli(waitUntilValue).atZone(ZoneId.systemDefault()).toLocalDateTime());
                 });
                 wasPerformed = true;
@@ -112,6 +111,21 @@ class RoutineScenarioProcessor implements Runnable {
                 CommonUtil.getPathForWrongShots(workingDirectory),
                 fileNameForWrongShot);
         return new UserMessageException(message);
+    }
+
+    private boolean verifyWaitingList(final WaitingList waitingList) throws InterruptedException {
+        if (waitingList == null) return true;
+        logger.info("verifying waitingList \"{}\"", waitingList.getList().stream().map(Waiting::getDescription).toList());
+        boolean result = false;
+        for (Waiting waiting : waitingList.getList()) {
+            if (verifyWaitingChecks(waiting)) {
+                logger.info("waiting \"{}\" has done", waiting.getDescription());
+                result = true;
+                break;
+            }
+            logger.info("waiting \"{}\" has not passed checks", waiting.getDescription());
+        }
+        return result;
     }
 
     private boolean verifyWaitingChecks(final Waiting waiting) throws InterruptedException {

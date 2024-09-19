@@ -17,7 +17,6 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
     private final JTextArea descriptionField;
     private final List<CheckWrapperPane> checks;
     private final JPanel checksPane;
-    private final IntegerTextField timeoutField;
 
     public WaitingEditPane(final Waiting waiting, final State state) {
         this.state = state;
@@ -33,15 +32,10 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         }
         descriptionField = new JTextArea(waiting.getDescription());
         checksPane = new JPanel(new GridBagLayout());
-        timeoutField = new IntegerTextField(0, Integer.MAX_VALUE);
-        timeoutField.setText("" + waiting.getTimeout());
-        final JPanel timeoutPanel = new JPanel();
-        SwingUtil.putComponentsToHorizontalGrid(timeoutPanel, new JLabel("Timeout, seconds"), timeoutField);
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 descriptionField,
-                checksPane,
-                timeoutPanel);
+                checksPane);
         fillChecksGrid();
     }
 
@@ -99,8 +93,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
     @Override
     public Waiting get() throws IllegalInputException {
         return new Waiting(validateAndGetDescription(),
-                validateAndGetChecks(),
-                validateAndGetTimeout());
+                validateAndGetChecks());
     }
 
     private String validateAndGetDescription() throws IllegalInputException {
@@ -130,20 +123,6 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         }
         checksPane.setBorder(null);
         return checkList;
-    }
-
-    private long validateAndGetTimeout() throws IllegalInputException {
-        final String timeoutText = timeoutField.getText();
-        if(timeoutText == null || timeoutText.isBlank()) {
-            timeoutField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Invalid timeout value (should be integer number)");
-        }
-        timeoutField.setBorder(null);
-        try {
-            return Long.parseLong(timeoutText);
-        } catch (NumberFormatException e) {
-            throw new IllegalInputException("Invalid timeout value (should be integer number)", e);
-        }
     }
 
     private class CheckWrapperPane extends JPanel implements SupplierThrowing<Check, IllegalInputException> {

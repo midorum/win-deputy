@@ -18,8 +18,8 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     private final List<CommandWrapperPane> commands;
     private final JPanel checksPane;
     private final JPanel commandsPane;
-    private final WaitingEditWrapperPane waitingEditWrapperPane;
-    private JCheckBox repeatableCheckBox;
+    private final WaitingListEditWrapperPane waitingListEditWrapperPane;
+    private final JCheckBox repeatableCheckBox;
 
     ActivityEditPane(final Activity activity, final State state) {
         this.state = state;
@@ -49,10 +49,10 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         checksPane.setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
         commandsPane = new JPanel(new GridBagLayout());
         commandsPane.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
-        waitingEditWrapperPane = activity.getWaiting()
-                .map(waiting -> new WaitingEditWrapperPane(waiting, state))
-                .orElse(new WaitingEditWrapperPane(state));
-        waitingEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
+        waitingListEditWrapperPane = activity.getWaitingList()
+                .map(waitingList -> new WaitingListEditWrapperPane(waitingList, state))
+                .orElse(new WaitingListEditWrapperPane(state));
+        waitingListEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
         repeatableCheckBox = new JCheckBox("repeatable", activity.isRepeatable());
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
@@ -61,7 +61,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 repeatableCheckBox,
                 checksPane,
                 commandsPane,
-                waitingEditWrapperPane);
+                waitingListEditWrapperPane);
         fillChecksGrid();
         fillCommandsGrid();
     }
@@ -170,7 +170,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 descriptionField.getText(),
                 validateAndGetChecks(),
                 validateAndGetCommands(),
-                waitingEditWrapperPane.get(),
+                waitingListEditWrapperPane.get(),
                 repeatableCheckBox.isSelected());
     }
 
@@ -330,15 +330,15 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         }
     }
 
-    private static class WaitingEditWrapperPane extends JPanel implements SupplierThrowing<Waiting, IllegalInputException> {
+    private static class WaitingListEditWrapperPane extends JPanel implements SupplierThrowing<WaitingList, IllegalInputException> {
 
         private final State state;
         private final JPanel container;
-        private WaitingEditPane waitingEditPane;
+        private WaitingListEditPane waitingListEditPane;
         private Button addWaitingButton;
         private Button deleteWaitingButton;
 
-        public WaitingEditWrapperPane(final State state) {
+        public WaitingListEditWrapperPane(final State state) {
             this.state = state;
             this.container = new JPanel();
             SwingUtil.putComponentsToVerticalGrid(this,
@@ -346,35 +346,35 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                     container);
         }
 
-        public WaitingEditWrapperPane(final Waiting waiting, final State state) {
+        public WaitingListEditWrapperPane(final WaitingList waitingList, final State state) {
             this(state);
-            addWaiting(waiting, state);
+            addWaitingList(waitingList, state);
         }
 
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel();
             addWaitingButton = new Button("+");
-            addWaitingButton.addActionListener(e -> addWaiting(new Waiting(), state));
+            addWaitingButton.addActionListener(e -> addWaitingList(new WaitingList(), state));
             deleteWaitingButton = new Button("-");
-            deleteWaitingButton.addActionListener(e -> deleteWaiting());
+            deleteWaitingButton.addActionListener(e -> deleteWaitingList());
             SwingUtil.putComponentsToHorizontalGrid(panel,
                     0,
-                    new JLabel("Waiting"),
+                    new JLabel("Waiting list (at least one of them must be fulfilled)"),
                     addWaitingButton,
                     deleteWaitingButton);
             return panel;
         }
 
-        private void addWaiting(final Waiting waiting, final State state) {
-            waitingEditPane = new WaitingEditPane(waiting, state);
-            SwingUtil.putComponentsToVerticalGrid(container, waitingEditPane);
+        private void addWaitingList(final WaitingList waitingList, final State state) {
+            waitingListEditPane = new WaitingListEditPane(waitingList, state);
+            SwingUtil.putComponentsToVerticalGrid(container, waitingListEditPane);
             addWaitingButton.setVisible(false);
             deleteWaitingButton.setVisible(true);
             revalidate();
         }
 
-        private void deleteWaiting() {
-            waitingEditPane = null;
+        private void deleteWaitingList() {
+            waitingListEditPane = null;
             container.removeAll();
             addWaitingButton.setVisible(true);
             deleteWaitingButton.setVisible(false);
@@ -382,8 +382,8 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         }
 
         @Override
-        public Waiting get() throws IllegalInputException {
-            return waitingEditPane != null ? waitingEditPane.get() : null;
+        public WaitingList get() throws IllegalInputException {
+            return waitingListEditPane != null ? waitingListEditPane.get() : null;
         }
     }
 }
