@@ -119,12 +119,12 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
 
     @Override
     public String get() {
-        return switch (valueField) {
+        return CommonUtil.trimToNull(switch (valueField) {
             case JTextField f -> f.getText();
             case JLabel f -> f.getText();
             case JComboBox<?> f -> f.getSelectedItem() != null ? f.getSelectedItem().toString() : null;
             case CoordinatesInput f -> f.getDataValue();
             default -> throw new IllegalArgumentException("Unrecognized component");
-        };
+        });
     }
 }

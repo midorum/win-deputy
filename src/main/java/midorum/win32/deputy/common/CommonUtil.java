@@ -22,6 +22,12 @@ public final class CommonUtil {
     private CommonUtil() {
     }
 
+    public static String trimToNull(final String s) {
+        if (s == null) return null;
+        final String trim = s.trim();
+        return !trim.isBlank() ? trim : null;
+    }
+
     public static <T> int getIndex(T[] array, T t) {
         for (int i = 0; i < array.length; i++)
             if (Objects.equals(array[i], t)) return i;

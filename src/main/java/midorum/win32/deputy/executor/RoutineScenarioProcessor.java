@@ -48,11 +48,17 @@ class RoutineScenarioProcessor implements Runnable {
             logger.info("routine task started");
             //TODO check user activity on keyboard
             final Waiting setWaiting = waiting.get();
-            if (!verifyWaitingChecks(setWaiting) || System.currentTimeMillis() < waitUntil.longValue()) {
+            if (!verifyWaitingChecks(setWaiting) && System.currentTimeMillis() < waitUntil.longValue()) {
                 logger.info("waiting \"{}\" has not passed checks and waiting time does not expired - interrupt routine task",
                         setWaiting.getDescription());
                 cache.invalidate();
                 return;
+            } else if(setWaiting != null) {
+                logger.info("waiting \"{}\" has done - continue performing activities",
+                        setWaiting.getDescription());
+                waiting.set(null);
+                waitUntil.set(0);
+                waitIndex.set(0);
             }
             final List<Activity> activities = scenario.getActivities();
             boolean wasPerformed = false;
@@ -110,7 +116,7 @@ class RoutineScenarioProcessor implements Runnable {
 
     private boolean verifyWaitingChecks(final Waiting waiting) throws InterruptedException {
         if (waiting == null) return true;
-        logger.info("verifying waiting: {}", waiting.getDescription());
+        logger.info("verifying waiting \"{}\"", waiting.getDescription());
         return verifyChecks(waiting.getChecks());
     }
 

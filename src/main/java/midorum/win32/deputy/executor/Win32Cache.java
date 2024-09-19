@@ -46,15 +46,19 @@ public class Win32Cache {
                         .listProcessesWithName(key)
                         .getOrHandleError(e -> {
                             logger.error("error occurred while obtaining system processes", e);
-                            return Collections.EMPTY_LIST;
-                        }).stream().findFirst());
+                            return (List<IProcess>) Collections.EMPTY_LIST;
+                        }).stream()
+                        .peek(process -> logger.info("found process \"{}\" ({})", process.name(), process.pid()))
+                        .findFirst());
     }
 
     public Optional<IWindow> getWindow(final String windowTitle, final String windowClassName) {
         return windowCache.computeIfAbsent(windowTitle + "_class_" + windowClassName,
                 key -> Win32System.getInstance()
                         .findAllWindows(windowTitle, windowClassName, true)
-                        .stream().findFirst());
+                        .stream()
+                        .peek(window -> logger.info("found window \"{}\" ({})", window.getText(), window.getSystemId()))
+                        .findFirst());
     }
 
     public Optional<Stamp> getStamp(final String stampPath) {
@@ -69,7 +73,7 @@ public class Win32Cache {
                         final BufferedImage screenImage = Win32System.getInstance().getScreenShotMaker().takeWholeScreen();
                         final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, DEVIATION);
                         final List<StampSeeker.Result> stampSeekResults = stampSeeker.perform();
-                        if(stampSeekResults.isEmpty()) return Optional.empty();
+                        if (stampSeekResults.isEmpty()) return Optional.empty();
                         return stampSeekResults.stream()
                                 .map(result -> {
                                     logger.debug("found stamp: {}", result);
