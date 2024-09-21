@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import dma.validation.Validator;
 import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
@@ -22,9 +23,10 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     private final JCheckBox repeatableCheckBox;
 
     ActivityEditPane(final Activity activity, final State state) {
+        final Activity activityChecked = Validator.checkNotNull(activity).orThrow("activity");
         this.state = state;
         checks = new ArrayList<>();
-        final List<Check> activityChecks = activity.getChecks();
+        final List<Check> activityChecks = activityChecked.getChecks();
         if (activityChecks != null) {
             checks.addAll(activityChecks.stream()
                     .map(check -> new CheckEditPane(check, state))
@@ -34,7 +36,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
             checks.add(new CheckWrapperPane(state));
         }
         commands = new ArrayList<>();
-        final List<Command> activityCommands = activity.getCommands();
+        final List<Command> activityCommands = activityChecked.getCommands();
         if (activityCommands != null) {
             commands.addAll(activityCommands.stream()
                     .map(command -> new CommandEditPane(command, state))
@@ -43,17 +45,17 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         } else {
             commands.add(new CommandWrapperPane(state));
         }
-        titleField = new JTextField(activity.getTitle());
-        descriptionField = new JTextArea(activity.getDescription().orElse(null));
+        titleField = new JTextField(activityChecked.getTitle());
+        descriptionField = new JTextArea(activityChecked.getDescription().orElse(null));
         checksPane = new JPanel(new GridBagLayout());
         checksPane.setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
         commandsPane = new JPanel(new GridBagLayout());
         commandsPane.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
-        waitingListEditWrapperPane = activity.getWaitingList()
+        waitingListEditWrapperPane = activityChecked.getWaitingList()
                 .map(waitingList -> new WaitingListEditWrapperPane(waitingList, state))
                 .orElse(new WaitingListEditWrapperPane(state));
         waitingListEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
-        repeatableCheckBox = new JCheckBox("repeatable", activity.isRepeatable());
+        repeatableCheckBox = new JCheckBox("repeatable", activityChecked.isRepeatable());
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 titleField,
@@ -64,10 +66,6 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 waitingListEditWrapperPane);
         fillChecksGrid();
         fillCommandsGrid();
-    }
-
-    ActivityEditPane(final State state) {
-        this(new Activity(), state);
     }
 
     private void addCheckAbove(final CheckWrapperPane checkPane) {

@@ -11,8 +11,8 @@ public enum CommandType {
     mouseDoubleLeftClick(Constants.MOUSE_CLICK_MANDATORY_COMMAND_DATA_TYPES, Collections.EMPTY_LIST),
     mouseRightClick(Constants.MOUSE_CLICK_MANDATORY_COMMAND_DATA_TYPES, Collections.EMPTY_LIST),
     mouseDoubleRightClick(Constants.MOUSE_CLICK_MANDATORY_COMMAND_DATA_TYPES, Collections.EMPTY_LIST),
-    keyboardType(List.of(List.of(keyboardTypeText)), List.of(keyboardLayout)),
-    keyboardHitKey(List.of(List.of(keyboardKeyCode)), List.of(keyboardAltFlag, keyboardCtrlFlag, keyboardShiftFlag));
+    keyboardType(List.of(List.of(keyboardTypeText)), List.of(keyboardLayout, windowTitle, windowClassName)),
+    keyboardHitKey(List.of(List.of(keyboardKeyStroke)), List.of(keyboardKeyStrokeDelay, keyboardLayout, windowTitle, windowClassName));
 
     private final List<List<CommandDataType>> mandatory;
     private final List<CommandDataType> optional;

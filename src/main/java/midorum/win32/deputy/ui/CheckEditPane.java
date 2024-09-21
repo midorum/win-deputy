@@ -23,7 +23,6 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
         this.state = state;
         checkDataList = new ArrayList<>();
         checkTypeComboBox = createCheckTypeComboBox();
-        checkTypeComboBox.setSelectedIndex(-1);
         checkDataPane = new JPanel();
         SwingUtil.putComponentsToVerticalGrid(this, checkTypeComboBox, checkDataPane);
     }
@@ -38,16 +37,17 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
     }
 
     private JComboBox<CheckType> createCheckTypeComboBox() {
-        final JComboBox<CheckType> checkType = new JComboBox<>(CheckType.values());
-        checkType.addActionListener((e) -> {
-            final CheckType selectedItem = (CheckType) checkType.getSelectedItem();
+        final JComboBox<CheckType> comboBox = new JComboBox<>(CheckType.values());
+        comboBox.setSelectedIndex(-1);
+        comboBox.addActionListener((e) -> {
+            final CheckType selectedItem = (CheckType) comboBox.getSelectedItem();
             if (selectedItem != null) {
                 checkDataList.clear();
                 checkDataList.add(new CheckDataTypePane(getAvailableDataTypes(selectedItem)));
                 repaintCheckData();
             }
         });
-        return checkType;
+        return comboBox;
     }
 
     private static List<CheckDataType> getAvailableDataTypes(final CheckType checkType) {
@@ -76,7 +76,6 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
         }
         checkDataList.remove(checkDataTypePane);
         repaintCheckData();
-
     }
 
     private void moveDataUp(final CheckDataTypePane checkDataTypePane) {

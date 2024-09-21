@@ -5,6 +5,7 @@ import com.midorum.win32api.facade.exception.Win32ApiException;
 import dma.util.Delay;
 import dma.util.DurationFormatter;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.common.Settings;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,7 +13,9 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class RoutineScenarioProcessor implements Runnable {
 
-    public static final int MAX_REPEATABLE_COUNT = 3;
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final File workingDirectory;
     private final Scenario scenario;
@@ -29,7 +31,6 @@ class RoutineScenarioProcessor implements Runnable {
     private final CommandProcessor commandProcessor;
     private final AtomicReference<WaitingList> waitingList = new AtomicReference<>();
     private final AtomicLong waitUntil = new AtomicLong(0);
-    private final AtomicInteger waitIndex = new AtomicInteger(0);
     private final AtomicInteger repeatableIndex = new AtomicInteger(0);
     private final AtomicInteger repeatableCounter = new AtomicInteger(0);
 
@@ -55,10 +56,9 @@ class RoutineScenarioProcessor implements Runnable {
                 logger.info("waiting has done - continue performing activities");
                 waitingList.set(null);
                 waitUntil.set(0);
-                waitIndex.set(0);
             }
             final List<Activity> activities = scenario.getActivities();
-            boolean wasPerformed = false;
+            int wasPerformed = -1;
             for (int i = 0; i < activities.size(); i++) {
                 final Activity activity = activities.get(i);
                 logger.info("verifying activity checks: {} (\"{}\")", i, activity.getTitle());
@@ -69,10 +69,10 @@ class RoutineScenarioProcessor implements Runnable {
                 logger.info("activity {} (\"{}\") has passed checks and start perform commands", i, activity.getTitle());
                 performCommands(activity.getCommands());
                 final int currentIndex = i;
-                if (repeatableCounter.updateAndGet(operand ->
-                        currentIndex == repeatableIndex.getAndSet(currentIndex) ? operand + 1 : 0) == MAX_REPEATABLE_COUNT) {
+                if (!activity.isRepeatable() && repeatableCounter.updateAndGet(operand ->
+                        currentIndex == repeatableIndex.getAndSet(currentIndex) ? operand + 1 : 0) == Settings.MAX_REPEATABLE_COUNT) {
                     throw makeShotAndGetException("Activity \"" + activity.getTitle() + "\" (" + currentIndex + ")" +
-                            " was executed " + MAX_REPEATABLE_COUNT + " times in a row but it's not marked as repeatable." +
+                            " was executed " + Settings.MAX_REPEATABLE_COUNT + " times in a row but it's not marked as repeatable." +
                             " Maybe you've missed something. Interrupt scenario execution");
                 }
                 final int index = i;
@@ -80,20 +80,31 @@ class RoutineScenarioProcessor implements Runnable {
                     this.waitingList.set(waitingList);
                     final long waitUntilValue = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(waitingList.getTimeout(), TimeUnit.SECONDS);
                     waitUntil.set(waitUntilValue);
-                    waitIndex.set(index);
                     logger.info("activity {} (\"{}\") set waiting list \"{}\" until {}",
                             index,
                             activity.getTitle(),
                             waitingList.getList().stream().map(Waiting::getDescription).toList(),
                             Instant.ofEpochMilli(waitUntilValue).atZone(ZoneId.systemDefault()).toLocalDateTime());
                 });
-                wasPerformed = true;
+                wasPerformed = i;
                 break;
             }
-            if (!wasPerformed) {
+            if (wasPerformed < 0) {
                 throw makeShotAndGetException("No one activity was performed. Maybe you've missed something. Interrupt scenario execution");
             }
+            if (scenario.getType() == ScenarioType.oneTime && wasPerformed >= activities.size() - 1) {
+                throw new UserMessageException("Scenario \"" + scenario.getTitle() + "\" done its job");
+            }
             cache.invalidate();
+            if (scenario.getType() == ScenarioType.repeatable && wasPerformed >= activities.size() - 1) {
+                @SuppressWarnings("unchecked")
+                final Map<ScenarioDataType, String> data = scenario.getData().orElse(Collections.EMPTY_MAP);
+                final String repeatDelayValue = data.get(ScenarioDataType.repeatDelay);
+                if (repeatDelayValue != null) {
+                    ScenarioDataType.repeatDelay.getUnit().orElse(Settings.DEFAULT_TIME_UNIT)
+                            .sleep(Long.parseLong(repeatDelayValue));
+                }
+            }
 //            doRandomDelay(); // maybe optionally
             logger.info("routine task done");
         } catch (InterruptedException e) {

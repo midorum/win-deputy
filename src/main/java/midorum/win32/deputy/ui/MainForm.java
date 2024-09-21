@@ -1,9 +1,7 @@
 package midorum.win32.deputy.ui;
 
-import com.midorum.win32api.hook.GlobalKeyHook;
-import com.midorum.win32api.hook.KeyHookHelper;
-import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.common.Either;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.TaskDispatcher;
 
@@ -63,38 +61,48 @@ public class MainForm implements TaskDispatcher {
 
     @Override
     public void endScenarioEditing(final String scenarioPath) {
-        loadScenarioPath(scenarioPath, (scenario, file) -> {
-            updateState(file);
-            showForm(new ScenarioViewerForm(this, scenario, file));
-        });
+        loadScenarioPath(scenarioPath, (eitherScenarioOrError, file) ->
+                eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario -> {
+                            updateState(file);
+                            showForm(new ScenarioViewerForm(this, scenario, file));
+                        },
+                        e -> {
+                            state.getUtilities().reportThrowable("Error occurred while loading scenario", e);
+                            showForm(new ScenarioViewerForm(this));
+                        }));
     }
 
     @Override
     public void editScenario(final String scenarioPath) {
-        loadScenarioPath(scenarioPath, (scenario, file) ->
-                showForm(new ScenarioEditorForm(this, scenario, file)));
+        loadScenarioPath(scenarioPath, (eitherScenarioOrError, file) ->
+                eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario ->
+                                showForm(new ScenarioEditorForm(this, scenario, file)),
+                        e -> state.getUtilities().reportThrowable("Error occurred while loading scenario", e)));
     }
 
     @Override
     public void loadScenario() {
-        askScenarioPath((scenario, file) -> {
-            updateState(file);
-            showForm(new ScenarioViewerForm(this, scenario, file));
-        });
+        askScenarioPath((eitherScenarioOrError, file) ->
+                eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario -> {
+                            updateState(file);
+                            showForm(new ScenarioViewerForm(this, scenario, file));
+                        },
+                        e -> {
+                            state.getUtilities().reportThrowable("Error occurred while loading scenario", e);
+                            showForm(new ScenarioViewerForm(this));
+                        }));
     }
 
-    private void loadScenarioPath(final String scenarioPath, final BiConsumer<Scenario, File> scenarioConsumer) {
+    private void loadScenarioPath(final String scenarioPath, final BiConsumer<Either<Scenario, IOException>, File> scenarioConsumer) {
         loadScenarioFile(scenarioConsumer, new File(scenarioPath));
     }
 
-    private void askScenarioPath(final BiConsumer<Scenario, File> scenarioConsumer) {
+    private void askScenarioPath(final BiConsumer<Either<Scenario, IOException>, File> scenarioConsumer) {
         state.getUtilities().askExistFile(state.getWorkingDirectory()).ifPresent(file -> loadScenarioFile(scenarioConsumer, file));
     }
 
-    private void loadScenarioFile(final BiConsumer<Scenario, File> scenarioConsumer, final File file) {
-        CommonUtil.loadScenario(file).consumeOrHandleError((Consumer<? super Scenario>) scenario ->
-                        scenarioConsumer.accept(scenario, file),
-                e -> state.getUtilities().reportThrowable("Error occurred while loading scenario", e));
+    private void loadScenarioFile(final BiConsumer<Either<Scenario, IOException>, File> scenarioConsumer, final File file) {
+        scenarioConsumer.accept(CommonUtil.loadScenario(file), file);
     }
 
     private void updateState(final File file) {
@@ -112,7 +120,14 @@ public class MainForm implements TaskDispatcher {
             showForm(new ScenarioViewerForm(this));
         } else {
             loadScenarioPath(new File(state.getWorkingDirectory(), state.getScenarioName()).getAbsolutePath(),
-                    (scenario, file) -> showForm(new ScenarioViewerForm(this, scenario, file)));
+                    (eitherScenarioOrError, file) ->
+                            eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario -> {
+                                        showForm(new ScenarioViewerForm(this, scenario, file));
+                                    },
+                                    e -> {
+                                        state.getUtilities().reportThrowable("Error occurred while loading scenario", e);
+                                        showForm(new ScenarioViewerForm(this));
+                                    }));
         }
     }
 

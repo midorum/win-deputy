@@ -139,7 +139,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
 
         final List<CommandDataType> availableDataTypes;
         final private JPanel sourceTypeEditPaneWrapper;
-        private JComboBox<CommandDataType> dataTypeComboBox;
+        private final JComboBox<CommandDataType> dataTypeComboBox;
         private Supplier<String> dataValueSupplier;
 
         public CommandDataTypePane(final List<CommandDataType> availableDataTypes) {
@@ -176,7 +176,11 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
             final SourceTypeEditPane sourceTypeEditPane = new SourceTypeEditPane(commandDataType.getSourceTypes(), dataValue, state);
             dataValueSupplier = sourceTypeEditPane;
             sourceTypeEditPaneWrapper.removeAll();
-            SwingUtil.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper, sourceTypeEditPane);
+            SwingUtil.putComponentsToHorizontalGrid(sourceTypeEditPaneWrapper,
+                    0,
+                    sourceTypeEditPane,
+                    new JLabel(commandDataType.getUnit().map(timeUnit -> timeUnit.toString().toLowerCase())
+                            .orElse(null)));
             sourceTypeEditPaneWrapper.revalidate();
         }
 

@@ -4,7 +4,6 @@ import com.midorum.win32api.facade.*;
 import com.midorum.win32api.facade.exception.Win32ApiException;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
-import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
@@ -83,7 +82,7 @@ public class CommandProcessor {
     private void keyboardType(final Map<CommandDataType, String> data) throws Win32ApiException {
         final String keyboardTypeTextData = data.get(CommandDataType.keyboardTypeText);
         if (keyboardTypeTextData == null) throw new IllegalStateException("cannot obtain keyboardTypeText data");
-        final IWindow window = getForegroundWindow();
+        final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
         final String keyboardLayoutData = data.get(CommandDataType.keyboardLayout);
         if (keyboardLayoutData != null) {
             window.setKeyboardLayout(MsLcid.fromLayoutName(keyboardLayoutData)
@@ -92,20 +91,22 @@ public class CommandProcessor {
         window.getKeyboard().type(keyboardTypeTextData);
     }
 
-    private void keyboardHitKey(final Map<CommandDataType, String> data) throws Win32ApiException {
-        final String keyboardKeyCodeData = data.get(CommandDataType.keyboardKeyCode);
-        if (keyboardKeyCodeData == null) throw new IllegalStateException("cannot obtain keyboardKeyCode data");
-        final IWindow window = getForegroundWindow();
-        window.getKeyboard().enterHotKey(new HotKey.Builder()
-                .code(Win32VirtualKey.valueOf(keyboardKeyCodeData))
-                .setAlt(Boolean.parseBoolean(data.get(CommandDataType.keyboardAltFlag)))
-                .setControl(Boolean.parseBoolean(data.get(CommandDataType.keyboardCtrlFlag)))
-                .setShift(Boolean.parseBoolean(data.get(CommandDataType.keyboardShiftFlag)))
-                .build());
+    private void keyboardHitKey(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
+        final String keyboardKeyStrokeData = data.get(CommandDataType.keyboardKeyStroke);
+        if (keyboardKeyStrokeData == null) throw new IllegalStateException("cannot obtain keyboardKeyStroke data");
+        final String keyboardKeyStrokeDelayValue = data.get(CommandDataType.keyboardKeyStrokeDelay);
+        final long delay = keyboardKeyStrokeDelayValue != null ? Long.parseLong(keyboardKeyStrokeDelayValue) : 0L;
+        final HotKey hotKey = HotKey.valueOf(keyboardKeyStrokeData);
+        final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
+        window.getKeyboard().enterHotKey(hotKey, delay);
     }
 
-    private IWindow getForegroundWindow() {
-        return win32System.getForegroundWindow()
+    private IWindow getWindow(final String windowTitleData, final String windowClassNameData) {
+        return windowTitleData != null || windowClassNameData != null
+                ? cache.getWindow(windowTitleData, windowClassNameData)
+                .orElseThrow(() -> new IllegalStateException("cannot obtain window with title [" + windowTitleData + "]" +
+                        " and class [" + windowClassNameData + "]"))
+                : win32System.getForegroundWindow()
                 .orElseThrow(() -> new IllegalStateException("cannot obtain foreground window"));
     }
 

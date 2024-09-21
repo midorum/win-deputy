@@ -6,6 +6,7 @@ import com.midorum.win32api.facade.Rectangle;
 import com.midorum.win32api.facade.Win32System;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.FileServiceProvider;
+import midorum.win32.deputy.common.Settings;
 import midorum.win32.deputy.model.IExecutor;
 import midorum.win32.deputy.model.Stamp;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Win32Cache {
 
-    public static final int DEVIATION = 1;
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final File workingDirectory;
 
@@ -54,11 +54,20 @@ public class Win32Cache {
 
     public Optional<IWindow> getWindow(final String windowTitle, final String windowClassName) {
         return windowCache.computeIfAbsent(windowTitle + "_class_" + windowClassName,
-                key -> Win32System.getInstance()
-                        .findAllWindows(windowTitle, windowClassName, true)
-                        .stream()
-                        .peek(window -> logger.info("found window \"{}\" ({})", window.getText(), window.getSystemId()))
-                        .findFirst());
+                key -> {
+                    final Optional<IWindow> found = Win32System.getInstance()
+                            .findAllWindows(windowTitle, windowClassName, true)
+                            .stream()
+                            .peek(window -> logger.info("found window \"{}\" ({})", window.getText(), window.getSystemId()))
+                            .findFirst();
+                    if(Settings.LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL && found.isEmpty()) {
+                        logger.debug("Window {} class:{} not found. List all windows in system.", windowTitle, windowClassName);
+                        Win32System.getInstance().listAllWindows().forEach(window -> {
+                            logger.debug("found window: id{} title:{} class:{}", window.getSystemId(), window.getText(), window.getClassName());
+                        });
+                    }
+                    return found;
+                });
     }
 
     public Optional<Stamp> getStamp(final String stampPath) {
@@ -71,7 +80,7 @@ public class Win32Cache {
                                 CommonUtil.getImageFormat()).readImage();
                         final Stamp stamp = new Stamp(key, stampImage);
                         final BufferedImage screenImage = Win32System.getInstance().getScreenShotMaker().takeWholeScreen();
-                        final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, DEVIATION);
+                        final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, Settings.STAMP_DEVIATION);
                         final List<StampSeeker.Result> stampSeekResults = stampSeeker.perform();
                         if (stampSeekResults.isEmpty()) return Optional.empty();
                         return stampSeekResults.stream()

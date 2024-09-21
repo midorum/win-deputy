@@ -12,7 +12,7 @@
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
         <dma-util.version>0.3.11++time-measurer-2.0</dma-util.version>
-        <midorum.Win32API.version>3.3.7</midorum.Win32API.version>
+        <midorum.Win32API.version>3.3.10</midorum.Win32API.version>
         <log4j.version>2.20.0</log4j.version>
     </properties>
 
@@ -81,5 +81,117 @@
 <!--            <version>0.14.1</version>-->
 <!--        </dependency>-->
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>midorum.win32.deputy.ui.MainForm</mainClass>
+                        </manifest>
+                        <manifestEntries>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <!-- Build an executable fat JAR -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <!-- Run shade goal on package phase -->
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <!-- add Main-Class to manifest file -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>midorum.win32.deputy.ui.MainForm</Main-Class>
+                                        <Build-Time>${maven.build.timestamp}</Build-Time>
+                                    </manifestEntries>
+                                </transformer>
+                                <!-- exclude module-info from fat jar -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
+                                    <resource>module-info.*</resource>
+                                </transformer>
+                                <!-- Transformer for maven-shaded-plugin, that concatenates Log4j2Plugins.dat files in order to provide a workaround for LOG4J2-673 and LOG4J2-954 bugs. -->
+                                <!-- https://github.com/edwgiz/maven-shaded-log4j-transformer/tree/cadff48627d814f052161d73b753cd29aa8af047 -->
+                                <!-- https://issues.apache.org/jira/browse/LOG4J2-673 -->
+                                <!-- https://issues.apache.org/jira/browse/LOG4J2-954 -->
+                                <transformer
+                                        implementation="io.github.edwgiz.log4j.maven.plugins.shade.transformer.Log4j2PluginCacheFileTransformer">
+                                </transformer>
+                            </transformers>
+                            <!--suppress UnresolvedMavenProperty -->
+                            <finalName>
+                                ${artifactId}-${project.version}
+                            </finalName>
+                            <createDependencyReducedPom>
+                                false
+                            </createDependencyReducedPom>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.github.edwgiz</groupId>
+                        <artifactId>log4j-maven-shade-plugin-extensions</artifactId>
+                        <version>${log4j.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>2.5.1</version>
+                <executions>
+                    <execution>
+                        <id>l4j-gui</id>
+                        <phase>package</phase>
+                        <goals><goal>launch4j</goal></goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>target/win-deputy-0.1.0-SNAPSHOT.exe</outfile>
+                            <jar>target/win-deputy-0.1.0-SNAPSHOT.jar</jar>
+                            <errTitle>${artifactId}</errTitle>
+                            <classPath>
+                                <mainClass>midorum.win32.deputy.ui.MainForm</mainClass>
+                            </classPath>
+                            <jre>
+                                <minVersion>1.22.0</minVersion>
+                            </jre>
+                            <versionInfo>
+                                <fileVersion>0.1.0.0</fileVersion>
+                                <txtFileVersion>${project.version}</txtFileVersion>
+<!--                                <fileDescription>a description</fileDescription>-->
+<!--                                <copyright>my copyright</copyright>-->
+                                <productVersion>0.1.0.0</productVersion>
+                                <txtProductVersion>${project.version}</txtProductVersion>
+                                <productName>${artifactId}</productName>
+                                <internalName>${artifactId}</internalName>
+<!--                                <originalFilename>original.exe</originalFilename>-->
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

@@ -1,10 +1,9 @@
 package midorum.win32.deputy.executor;
 
 import dma.validation.Validator;
+import midorum.win32.deputy.common.Settings;
 import midorum.win32.deputy.model.IExecutor;
 import midorum.win32.deputy.model.Scenario;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.util.concurrent.*;
@@ -25,8 +24,8 @@ public class ExecutorImpl implements IExecutor {
                         new RoutineScenarioProcessor(Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory"),
                                 Validator.checkNotNull(scenario).orThrowForSymbol("scenario")),
                         Validator.checkNotNull(errorHandler).orThrowForSymbol("task error handler")),
-                5,
-                1,
+                Settings.INITIAL_DELAY,
+                Settings.DELAY,
                 TimeUnit.SECONDS);
     }
 

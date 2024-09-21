@@ -52,6 +52,17 @@ public class Scenario {
         return activitiesList != null && !activitiesList.isEmpty();
     }
 
+    public static boolean validateScenarioDataEntry(final ScenarioDataType scenarioDataType, final String scenarioDataValue) {
+        if(scenarioDataType == null) return false;
+        return scenarioDataValue != null && !scenarioDataValue.isBlank();
+    }
+
+    public static boolean validateScenarioData(final ScenarioType scenarioType, final Map<ScenarioDataType, String> data) {
+        final List<ScenarioDataType> mandatory = scenarioType.mandatory();
+        if(mandatory.isEmpty()) return true;
+        return mandatory.stream().anyMatch(data::containsKey);
+    }
+
     public String getTitle() {
         return this.title;
     }

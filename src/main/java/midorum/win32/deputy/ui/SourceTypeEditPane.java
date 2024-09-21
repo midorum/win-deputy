@@ -1,7 +1,10 @@
 package midorum.win32.deputy.ui;
 
 import com.midorum.win32api.facade.Win32System;
+import com.midorum.win32api.hook.GlobalKeyHook;
+import com.midorum.win32api.hook.KeyHookHelper;
 import com.midorum.win32api.win32.MsLcid;
+import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.model.SourceType;
 
@@ -25,6 +28,7 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
                 : sourceTypes.contains(SourceType.keyboardLayoutChoice) ? createKeyboardLayoutComboBox(dataValue)
                 : sourceTypes.contains(SourceType.booleanChoice) ? createBooleanChoiceComboBox(dataValue)
                 : sourceTypes.contains(SourceType.coordinatesInput) ? new CoordinatesInput(dataValue, state)
+                : sourceTypes.contains(SourceType.positiveIntegerInput) ? new IntegerTextField(0, Integer.MAX_VALUE, dataValue)
                 : new JLabel(dataValue);
         components.add(valueField);
         if (sourceTypes.contains(SourceType.pickFile)) {
@@ -70,6 +74,11 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
             btn.addActionListener(event -> state.getUtilities().pickWindowExStyles(this::setValueField));
             components.add(btn);
         }
+        if (sourceTypes.contains(SourceType.captureKeystroke)) {
+            final Button btn = new Button("+");
+            btn.addActionListener(event -> captureHotkey());
+            components.add(btn);
+        }
         SwingUtil.putComponentsToHorizontalGrid(this, 0, components.toArray(Component[]::new));
     }
 
@@ -101,6 +110,24 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         return comboBox;
     }
 
+    private void captureHotkey() {
+        final GlobalKeyHook.KeyEvent eventToBreakCapturing = new KeyHookHelper.KeyEventBuilder().virtualKey(Win32VirtualKey.VK_ESCAPE).withControl().build();
+        final String previousValue = get();
+        final Color foregroundColor = valueField.getForeground();
+        setValueField("Enter desired keystroke. Press " + eventToBreakCapturing.toPrettyString() + " to cancel capturing.");
+        valueField.setForeground(Color.RED);
+        KeyHookHelper.getInstance().capture(eventToBreakCapturing, KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
+                keyEvent -> {
+                    setValueField(keyEvent.toPrettyString());
+                    valueField.setForeground(foregroundColor);
+                },
+                keyEvent -> {
+                    setValueField(previousValue);
+                    valueField.setForeground(foregroundColor);
+                    state.getUtilities().reportIllegalState("Keystroke was not captured.");
+                });
+    }
+
     private void setValueField(final String value) {
         switch (valueField) {
             case JTextField f -> f.setText(value);
@@ -119,12 +146,13 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
 
     @Override
     public String get() {
-        return CommonUtil.trimToNull(switch (valueField) {
+        // DO NOT TRIM THIS VALUE (obtained system resources MAY contain trailing spaces in their names)
+        return switch (valueField) {
             case JTextField f -> f.getText();
             case JLabel f -> f.getText();
             case JComboBox<?> f -> f.getSelectedItem() != null ? f.getSelectedItem().toString() : null;
             case CoordinatesInput f -> f.getDataValue();
             default -> throw new IllegalArgumentException("Unrecognized component");
-        });
+        };
     }
 }

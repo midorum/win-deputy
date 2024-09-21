@@ -27,4 +27,9 @@ public class IntegerTextField extends JFormattedTextField {
         setHorizontalAlignment(SwingConstants.CENTER);
     }
 
+    public IntegerTextField(final int lowBound, final int topBound, final String value) {
+        this(lowBound, topBound);
+        setText(value);
+    }
+
 }

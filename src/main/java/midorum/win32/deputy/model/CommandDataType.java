@@ -1,25 +1,43 @@
 package midorum.win32.deputy.model;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public enum CommandDataType {
+    windowTitle(List.of(SourceType.userInput, SourceType.pickWindowTitle)),
+    windowClassName(List.of(SourceType.userInput, SourceType.pickWindowClassName)),
+    windowStyleIs(List.of(SourceType.userInput, SourceType.pickWindowStyles)),
+    windowExStyleIs(List.of(SourceType.userInput, SourceType.pickWindowExStyles)),
+    windowStyleExists(List.of(SourceType.windowStyleChoice)),
+    windowStyleNotExists(List.of(SourceType.windowStyleChoice)),
+    windowExStyleExists(List.of(SourceType.windowExStyleChoice)),
+    windowExStyleNotExists(List.of(SourceType.windowExStyleChoice)),
+    windowForeground(List.of(SourceType.booleanChoice)),
     mousePosition(List.of(SourceType.coordinatesInput, SourceType.pickAbsolutePoint)),
     mouseShotRelatedPosition(List.of(SourceType.pickFile, SourceType.makeShot)), // todo add types for pick relative point
     keyboardTypeText(List.of(SourceType.userInput)),
     keyboardLayout(List.of(SourceType.keyboardLayoutChoice)),
-    keyboardKeyCode(List.of(SourceType.userInput)),
-    keyboardAltFlag(List.of(SourceType.booleanChoice)),
-    keyboardCtrlFlag(List.of(SourceType.booleanChoice)),
-    keyboardShiftFlag(List.of(SourceType.booleanChoice));
+    keyboardKeyStroke(List.of(SourceType.userInput, SourceType.captureKeystroke)),
+    keyboardKeyStrokeDelay(List.of(SourceType.positiveIntegerInput), TimeUnit.MILLISECONDS);
 
     private final List<SourceType> sourceTypes;
+    private final TimeUnit unit;
+
+    CommandDataType(final List<SourceType> sourceTypes, final TimeUnit unit) {
+        this.sourceTypes = sourceTypes;
+        this.unit = unit;
+    }
 
     CommandDataType(final List<SourceType> sourceTypes) {
-        this.sourceTypes = sourceTypes;
+        this(sourceTypes, null);
     }
 
     public List<SourceType> getSourceTypes() {
         return sourceTypes;
     }
 
+    public Optional<TimeUnit> getUnit() {
+        return Optional.ofNullable(unit);
+    }
 }
