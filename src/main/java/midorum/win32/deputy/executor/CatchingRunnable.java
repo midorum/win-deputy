@@ -1,5 +1,6 @@
 package midorum.win32.deputy.executor;
 
+import dma.validation.Validator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,8 +13,8 @@ public class CatchingRunnable implements Runnable {
     private final Consumer<Throwable> errorHandler;
 
     public CatchingRunnable(final Runnable delegate, final Consumer<Throwable> errorHandler) {
-        this.delegate = delegate;
-        this.errorHandler = errorHandler;
+        this.delegate = Validator.checkNotNull(delegate).orThrowForSymbol("delegate");
+        this.errorHandler = Validator.checkNotNull(errorHandler).orThrowForSymbol("task error handler");
     }
 
     @Override

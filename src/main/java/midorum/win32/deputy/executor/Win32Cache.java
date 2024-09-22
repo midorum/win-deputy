@@ -4,6 +4,7 @@ import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
 import com.midorum.win32api.facade.Rectangle;
 import com.midorum.win32api.facade.Win32System;
+import com.midorum.win32api.facade.exception.Win32ApiException;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.FileServiceProvider;
 import midorum.win32.deputy.common.Settings;
@@ -60,7 +61,7 @@ public class Win32Cache {
                             .stream()
                             .peek(window -> logger.info("found window \"{}\" ({})", window.getText(), window.getSystemId()))
                             .findFirst();
-                    if(Settings.LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL && found.isEmpty()) {
+                    if (Settings.LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL && found.isEmpty()) {
                         logger.debug("Window {} class:{} not found. List all windows in system.", windowTitle, windowClassName);
                         Win32System.getInstance().listAllWindows().forEach(window -> {
                             logger.debug("found window: id{} title:{} class:{}", window.getSystemId(), window.getText(), window.getClassName());
@@ -79,9 +80,7 @@ public class Win32Cache {
                                 key,
                                 CommonUtil.getImageFormat()).readImage();
                         final Stamp stamp = new Stamp(key, stampImage);
-                        final BufferedImage screenImage = Win32System.getInstance().getScreenShotMaker().takeWholeScreen();
-                        final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, Settings.STAMP_DEVIATION);
-                        final List<StampSeeker.Result> stampSeekResults = stampSeeker.perform();
+                        final List<StampSeeker.Result> stampSeekResults = seekStampOnScreenWithAdditionalAttempt(stamp);
                         if (stampSeekResults.isEmpty()) return Optional.empty();
                         return stampSeekResults.stream()
                                 .map(result -> {
@@ -92,10 +91,25 @@ public class Win32Cache {
                                                     result.stamp().location().width(),
                                                     result.stamp().location().height()));
                                 }).findFirst();
-                    } catch (IOException e) {
+                    } catch (IOException | InterruptedException | Win32ApiException e) {
                         logger.error("error occurred while reading image file", e);
                         throw new IllegalStateException(e);
                     }
                 });
+    }
+
+    private static List<StampSeeker.Result> seekStampOnScreenWithAdditionalAttempt(final Stamp stamp)
+            throws InterruptedException, Win32ApiException {
+        final List<StampSeeker.Result> stampSeekResults = seekStampOnScreen(stamp);
+        if (!stampSeekResults.isEmpty()) return stampSeekResults;
+        // maybe the mouse pointer interferes
+        Win32System.getInstance().getScreenMouse(Settings.MOUSE_SPEED_FACTOR).move(0, 0);
+        return seekStampOnScreen(stamp);
+    }
+
+    private static List<StampSeeker.Result> seekStampOnScreen(final Stamp stamp) {
+        final BufferedImage screenImage = Win32System.getInstance().getScreenShotMaker().takeWholeScreen();
+        final StampSeeker stampSeeker = new StampSeeker(screenImage, stamp, Settings.STAMP_DEVIATION);
+        return stampSeeker.perform();
     }
 }

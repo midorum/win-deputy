@@ -4,8 +4,10 @@ import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.facade.exception.Win32ApiException;
 import dma.util.Delay;
 import dma.util.DurationFormatter;
+import dma.validation.Validator;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.Settings;
+import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,6 +29,7 @@ class RoutineScenarioProcessor implements Runnable {
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final File workingDirectory;
     private final Scenario scenario;
+    private final UserActivityObserver userActivityObserver;
     private final Win32Cache cache;
     private final CheckProcessor checkProcessor;
     private final CommandProcessor commandProcessor;
@@ -33,20 +37,30 @@ class RoutineScenarioProcessor implements Runnable {
     private final AtomicLong waitUntil = new AtomicLong(0);
     private final AtomicInteger repeatableIndex = new AtomicInteger(0);
     private final AtomicInteger repeatableCounter = new AtomicInteger(0);
+    private final AtomicLong lastUserKeyEventTime = new AtomicLong(0);
 
-    RoutineScenarioProcessor(final File workingDirectory, final Scenario scenario) {
-        this.workingDirectory = workingDirectory;
-        this.scenario = scenario;
+    RoutineScenarioProcessor(final File workingDirectory, final Scenario scenario, final UserActivityObserver userActivityObserver) {
+        this.workingDirectory = Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory");
+        this.scenario = Validator.checkNotNull(scenario).orThrowForSymbol("scenario");
+        this.userActivityObserver = Validator.checkNotNull(userActivityObserver).orThrowForSymbol("userActivityObserver");
         this.cache = new Win32Cache(workingDirectory);
         this.checkProcessor = new CheckProcessor(cache);
-        commandProcessor = new CommandProcessor(cache);
+        commandProcessor = new CommandProcessor(cache, userActivityObserver);
     }
 
     @Override
     public void run() {
         try {
             logger.info("routine task started");
-            //TODO check user activity on keyboard
+            final long l = lastUserKeyEventTime.get();
+            if (l > 0) {
+                logger.info("scenario executing paused cause of user activity ({}) due to {}",
+                        l,
+                        Instant.ofEpochMilli(l + TimeUnit.MILLISECONDS.convert(Settings.USER_ACTIVITY_DELAY, TimeUnit.SECONDS))
+                                .atZone(ZoneId.systemDefault()).toLocalDateTime());
+                TimeUnit.SECONDS.sleep(Settings.USER_ACTIVITY_DELAY);
+                lastUserKeyEventTime.set(0);
+            }
             final WaitingList setWaitingList = waitingList.get();
             if (!verifyWaitingList(setWaitingList) && System.currentTimeMillis() < waitUntil.longValue()) {
                 logger.info("waiting list has not passed checks and waiting time does not expired - interrupt routine task");
@@ -97,8 +111,7 @@ class RoutineScenarioProcessor implements Runnable {
             }
             cache.invalidate();
             if (scenario.getType() == ScenarioType.repeatable && wasPerformed >= activities.size() - 1) {
-                @SuppressWarnings("unchecked")
-                final Map<ScenarioDataType, String> data = scenario.getData().orElse(Collections.EMPTY_MAP);
+                @SuppressWarnings("unchecked") final Map<ScenarioDataType, String> data = scenario.getData().orElse(Collections.EMPTY_MAP);
                 final String repeatDelayValue = data.get(ScenarioDataType.repeatDelay);
                 if (repeatDelayValue != null) {
                     ScenarioDataType.repeatDelay.getUnit().orElse(Settings.DEFAULT_TIME_UNIT)
@@ -107,6 +120,13 @@ class RoutineScenarioProcessor implements Runnable {
             }
 //            doRandomDelay(); // maybe optionally
             logger.info("routine task done");
+        } catch (UserActionDetectedException e) {
+            lastUserKeyEventTime.set(userActivityObserver.getLastUserKeyEventTime());
+            cache.invalidate();
+            userActivityObserver.reset();
+            repeatableIndex.set(0);
+            repeatableCounter.set(0);
+            logger.info("routine interrupted cause of user activity");
         } catch (InterruptedException e) {
             logger.warn(e.getMessage(), e);
             throw new ControlledInterruptedException(e);

@@ -3,11 +3,12 @@ package midorum.win32.deputy.ui;
 import com.midorum.win32api.hook.GlobalKeyHook;
 import com.midorum.win32api.hook.KeyHookHelper;
 import com.midorum.win32api.win32.Win32VirtualKey;
+import dma.validation.Validator;
+import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.executor.ExecutorImpl;
-import midorum.win32.deputy.model.Displayable;
-import midorum.win32.deputy.model.Scenario;
-import midorum.win32.deputy.model.TaskDispatcher;
-import midorum.win32.deputy.model.UserMessageException;
+import midorum.win32.deputy.model.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ScenarioViewerForm extends JPanel implements Displayable {
 
+    private final Logger executorLogger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private static final int PANE_MARGIN = 10;
     private final TaskDispatcher taskDispatcher;
     private final State state;
@@ -31,11 +33,13 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     private Button loadScenarioButton;
     private Button createScenarioButton;
     private final AtomicReference<GlobalKeyHook> cancelKeyHook = new AtomicReference<>();
+    private UserActivityObserver userActivityObserver;
 
     ScenarioViewerForm(final TaskDispatcher taskDispatcher) {
-        this.taskDispatcher = taskDispatcher;
+        this.taskDispatcher = Validator.checkNotNull(taskDispatcher).orThrowForSymbol("taskDispatcher");
         this.state = new State(new UiUtil(this));
-        this.executor = new ExecutorImpl();
+        this.userActivityObserver = new UserActivityObserver();
+        this.executor = new ExecutorImpl(userActivityObserver);
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
         this.scenarioDescriptionLabel = new JLabel();
@@ -106,11 +110,13 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         btn.addActionListener(e -> {
             if (scenario != null) {
                 lockForm();
-                final GlobalKeyHook oldHook = cancelKeyHook.getAndSet(setCancelTaskHook());
+                final GlobalKeyHook oldHook = cancelKeyHook.getAndSet(setCancelTaskHook2());
                 if (oldHook != null) oldHook.unhook();
                 executor.sendRoutineTask(state.getWorkingDirectory(), scenario, throwable -> {
-                    if (Objects.requireNonNull(throwable) instanceof UserMessageException ex) {
+                    if (throwable instanceof UserMessageException ex) {
                         state.getUtilities().reportThrowable(ex.getMessage(), ex);
+                    } else if (throwable instanceof ControlledInterruptedException ex) {
+                        state.getUtilities().reportThrowable("Scenario executing has been interrupted", ex);
                     } else {
                         state.getUtilities().reportThrowable("Error occurred while executing scenario", throwable);
                     }
@@ -163,6 +169,27 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
                     state.getUtilities().logThrowable("error occurred while cancel executing task", throwable);
                     return true; // release hook
                 });
+    }
+
+    private GlobalKeyHook setCancelTaskHook2() {
+        final GlobalKeyHook.KeyEvent stopKey = new KeyHookHelper.KeyEventBuilder()
+                .virtualKey(Win32VirtualKey.VK_S).withControl().withShift().build();
+        final KeyHookHelper keyHookHelper = KeyHookHelper.getInstance();
+        return keyHookHelper.setGlobalHook(
+                keyEvent -> {
+                    executorLogger.trace(() -> ">>> GlobalHook: keyEvent: " + keyEvent + " " + keyEvent.toPrettyString());
+                    userActivityObserver.checkKeyEvent(keyEvent);
+                    final boolean isNeedStop = KeyHookHelper.KeyEventComparator.byAltControlShiftCode.compare(stopKey, keyEvent) == 0;
+                    if (isNeedStop && executor.cancelCurrentTask()) {
+                        unlockForm();
+                    }
+                    return isNeedStop ? KeyHookHelper.Result.deleteHook : KeyHookHelper.Result.propagateEvent;
+                },
+                throwable -> {
+                    state.getUtilities().logThrowable("error occurred while cancel executing task", throwable);
+                    return KeyHookHelper.Result.keepHook;
+                }
+        );
     }
 
     @Override

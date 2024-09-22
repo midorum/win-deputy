@@ -116,7 +116,7 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         final Color foregroundColor = valueField.getForeground();
         setValueField("Enter desired keystroke. Press " + eventToBreakCapturing.toPrettyString() + " to cancel capturing.");
         valueField.setForeground(Color.RED);
-        KeyHookHelper.getInstance().capture(eventToBreakCapturing, KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
+        KeyHookHelper.getInstance().captureOnce(eventToBreakCapturing, KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
                 keyEvent -> {
                     setValueField(keyEvent.toPrettyString());
                     valueField.setForeground(foregroundColor);

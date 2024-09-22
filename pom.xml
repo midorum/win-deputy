@@ -12,7 +12,7 @@
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
         <dma-util.version>0.3.11++time-measurer-2.0</dma-util.version>
-        <midorum.Win32API.version>3.3.10</midorum.Win32API.version>
+        <midorum.Win32API.version>0.4.0</midorum.Win32API.version>
         <log4j.version>2.20.0</log4j.version>
     </properties>
 
