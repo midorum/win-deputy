@@ -6,4 +6,6 @@ public interface TaskDispatcher {
     void endScenarioEditing(String scenarioPath);
     void editScenario(String scenarioPath);
     void loadScenario();
+    void showCredits();
+    void closeCredits();
 }

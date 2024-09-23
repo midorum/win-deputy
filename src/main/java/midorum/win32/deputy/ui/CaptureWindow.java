@@ -1,7 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import com.midorum.win32api.facade.Rectangle;
-import com.midorum.win32api.facade.Win32System;
+import midorum.win32.deputy.common.Win32Adapter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -24,9 +24,9 @@ class CaptureWindow {
         this.doNotMoveOutOfScreenEdges = true;
     }
 
-    public CaptureWindow(Consumer<Optional<BufferedImage>> consumer) {
+    public CaptureWindow(Consumer<Optional<BufferedImage>> consumer, final Win32Adapter win32Adapter) {
         this(maybeRectangle -> maybeRectangle.ifPresentOrElse(rectangle ->
-                        consumer.accept(Optional.ofNullable(Win32System.getInstance().getScreenShotMaker().takeRectangle(rectangle))),
+                        consumer.accept(Optional.ofNullable(win32Adapter.takeRectangleShot(rectangle))),
                 () -> consumer.accept(Optional.empty())), true);
     }
 

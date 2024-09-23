@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ScenarioViewerForm extends JPanel implements Displayable {
@@ -33,13 +32,13 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     private Button loadScenarioButton;
     private Button createScenarioButton;
     private final AtomicReference<GlobalKeyHook> cancelKeyHook = new AtomicReference<>();
-    private UserActivityObserver userActivityObserver;
+    private final UserActivityObserver userActivityObserver;
 
-    ScenarioViewerForm(final TaskDispatcher taskDispatcher) {
+    ScenarioViewerForm(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = Validator.checkNotNull(taskDispatcher).orThrowForSymbol("taskDispatcher");
-        this.state = new State(new UiUtil(this));
+        this.state = new State(uiUtil);
         this.userActivityObserver = new UserActivityObserver();
-        this.executor = new ExecutorImpl(userActivityObserver);
+        this.executor = new ExecutorImpl(userActivityObserver, uiUtil.getWin32Adapter());
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
         this.scenarioDescriptionLabel = new JLabel();
@@ -56,8 +55,8 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         stopScenarioButton.setEnabled(false);
     }
 
-    ScenarioViewerForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile) {
-        this(taskDispatcher);
+    ScenarioViewerForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile, final UiUtil uiUtil) {
+        this(taskDispatcher, uiUtil);
         this.scenario = scenario;
         state.setWorkingDirectory(scenarioFile.getParentFile());
         state.setScenarioName(scenarioFile.getName());
@@ -83,6 +82,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         buttonPane.add(runScenarioButton);
         stopScenarioButton = createStopScenarioButton();
         buttonPane.add(stopScenarioButton);
+        buttonPane.add(createShowCreditsButton());
         return buttonPane;
     }
 
@@ -137,6 +137,12 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
             }
             unlockForm();
         });
+        return btn;
+    }
+
+    private Button createShowCreditsButton() {
+        final Button btn = new Button("Credits");
+        btn.addActionListener(e -> taskDispatcher.showCredits());
         return btn;
     }
 

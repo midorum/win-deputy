@@ -57,6 +57,10 @@ public class UserActivityObserver {
         return lastUserKeyEventTime.get();
     }
 
+    public boolean wasUserActivity() {
+        return lastUserKeyEventTime.get() > 0;
+    }
+
     public void reset() {
         queue.clear();
         lastUserKeyEventTime.set(0L);

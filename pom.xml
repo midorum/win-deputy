@@ -6,14 +6,24 @@
 
     <groupId>midorum.win32</groupId>
     <artifactId>win-deputy</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 
     <properties>
+        <project.organization.name>midorum</project.organization.name>
+        <project.description>A program that helps you perform routine in Windows</project.description>
+        <project.entryPoint>midorum.win32.deputy.ui.MainForm</project.entryPoint>
+        <project.inceptionYear>2024</project.inceptionYear>
+        <project.product.version>0.1.0.0</project.product.version>
+        <jre.min.version>1.22.0</jre.min.version>
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
+        <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
+        <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
         <dma-util.version>0.3.11++time-measurer-2.0</dma-util.version>
         <midorum.Win32API.version>0.4.0</midorum.Win32API.version>
         <log4j.version>2.20.0</log4j.version>
+        <jackson.version>2.17.2</jackson.version>
+        <launch4j.maven.plugin.version>2.5.1</launch4j.maven.plugin.version>
     </properties>
 
     <dependencies>
@@ -53,26 +63,25 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.17.0</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- Jackson Java 8 Date/time support -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jdk8</artifactId>
-            <!--            <version>2.13.3</version>-->
-            <version>2.17.2</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- Jackson Java 8 Date/time support -->
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-parameter-names</artifactId>
-            <version>2.17.2</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- Jackson Java 8 Date/time support -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>2.17.2</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- Validation -->
 <!--        <dependency>-->
@@ -87,13 +96,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
+                <version>${maven.jar.plugin.version}</version>
                 <configuration>
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>midorum.win32.deputy.ui.MainForm</mainClass>
+                            <mainClass>${project.entryPoint}</mainClass>
                         </manifest>
                         <manifestEntries>
                             <Build-Time>${maven.build.timestamp}</Build-Time>
@@ -106,7 +115,7 @@
                 <!-- Build an executable fat JAR -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>${maven.shade.plugin.version}</version>
                 <executions>
                     <!-- Run shade goal on package phase -->
                     <execution>
@@ -120,7 +129,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>midorum.win32.deputy.ui.MainForm</Main-Class>
+                                        <Main-Class>${project.entryPoint}</Main-Class>
                                         <Build-Time>${maven.build.timestamp}</Build-Time>
                                     </manifestEntries>
                                 </transformer>
@@ -159,7 +168,7 @@
             <plugin>
                 <groupId>com.akathist.maven.plugins.launch4j</groupId>
                 <artifactId>launch4j-maven-plugin</artifactId>
-                <version>2.5.1</version>
+                <version>${launch4j.maven.plugin.version}</version>
                 <executions>
                     <execution>
                         <id>l4j-gui</id>
@@ -167,21 +176,22 @@
                         <goals><goal>launch4j</goal></goals>
                         <configuration>
                             <headerType>gui</headerType>
-                            <outfile>target/win-deputy-0.1.0-SNAPSHOT.exe</outfile>
-                            <jar>target/win-deputy-0.1.0-SNAPSHOT.jar</jar>
+                            <outfile>${project.build.directory}/${artifactId}-${project.version}.exe</outfile>
+                            <jar>${project.build.directory}/${artifactId}-${project.version}.jar</jar>
                             <errTitle>${artifactId}</errTitle>
                             <classPath>
-                                <mainClass>midorum.win32.deputy.ui.MainForm</mainClass>
+                                <mainClass>${project.entryPoint}</mainClass>
                             </classPath>
                             <jre>
-                                <minVersion>1.22.0</minVersion>
+                                <minVersion>${jre.min.version}</minVersion>
                             </jre>
+                            <icon>${project.basedir}/src/main/resources/icons/droid-robot.ico</icon>
                             <versionInfo>
-                                <fileVersion>0.1.0.0</fileVersion>
+                                <fileVersion>${project.product.version}</fileVersion>
                                 <txtFileVersion>${project.version}</txtFileVersion>
-<!--                                <fileDescription>a description</fileDescription>-->
+                                <fileDescription>${project.description}</fileDescription>
 <!--                                <copyright>my copyright</copyright>-->
-                                <productVersion>0.1.0.0</productVersion>
+                                <productVersion>${project.product.version}</productVersion>
                                 <txtProductVersion>${project.version}</txtProductVersion>
                                 <productName>${artifactId}</productName>
                                 <internalName>${artifactId}</internalName>

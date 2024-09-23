@@ -1,6 +1,5 @@
 package midorum.win32.deputy.executor;
 
-import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.facade.exception.Win32ApiException;
 import dma.util.Delay;
 import dma.util.DurationFormatter;
@@ -8,6 +7,7 @@ import dma.validation.Validator;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.Settings;
 import midorum.win32.deputy.common.UserActivityObserver;
+import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,11 +15,9 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +28,7 @@ class RoutineScenarioProcessor implements Runnable {
     private final File workingDirectory;
     private final Scenario scenario;
     private final UserActivityObserver userActivityObserver;
+    private final Win32Adapter win32Adapter;
     private final Win32Cache cache;
     private final CheckProcessor checkProcessor;
     private final CommandProcessor commandProcessor;
@@ -39,13 +38,17 @@ class RoutineScenarioProcessor implements Runnable {
     private final AtomicInteger repeatableCounter = new AtomicInteger(0);
     private final AtomicLong lastUserKeyEventTime = new AtomicLong(0);
 
-    RoutineScenarioProcessor(final File workingDirectory, final Scenario scenario, final UserActivityObserver userActivityObserver) {
+    RoutineScenarioProcessor(final File workingDirectory,
+                             final Scenario scenario,
+                             final UserActivityObserver userActivityObserver,
+                             final Win32Adapter win32Adapter) {
         this.workingDirectory = Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory");
         this.scenario = Validator.checkNotNull(scenario).orThrowForSymbol("scenario");
         this.userActivityObserver = Validator.checkNotNull(userActivityObserver).orThrowForSymbol("userActivityObserver");
-        this.cache = new Win32Cache(workingDirectory);
+        this.win32Adapter = win32Adapter;
+        this.cache = new Win32Cache(workingDirectory, win32Adapter);
         this.checkProcessor = new CheckProcessor(cache);
-        commandProcessor = new CommandProcessor(cache, userActivityObserver);
+        this.commandProcessor = new CommandProcessor(cache, userActivityObserver, win32Adapter);
     }
 
     @Override
@@ -54,13 +57,19 @@ class RoutineScenarioProcessor implements Runnable {
             logger.info("routine task started");
             final long l = lastUserKeyEventTime.get();
             if (l > 0) {
+                cache.invalidate();
+                userActivityObserver.reset();
+                repeatableIndex.set(0);
+                repeatableCounter.set(0);
+                lastUserKeyEventTime.set(0);
                 logger.info("scenario executing paused cause of user activity ({}) due to {}",
                         l,
-                        Instant.ofEpochMilli(l + TimeUnit.MILLISECONDS.convert(Settings.USER_ACTIVITY_DELAY, TimeUnit.SECONDS))
+                        Instant.ofEpochMilli(System.currentTimeMillis()
+                                        + TimeUnit.MILLISECONDS.convert(Settings.USER_ACTIVITY_DELAY, TimeUnit.SECONDS))
                                 .atZone(ZoneId.systemDefault()).toLocalDateTime());
                 TimeUnit.SECONDS.sleep(Settings.USER_ACTIVITY_DELAY);
-                lastUserKeyEventTime.set(0);
             }
+            if (userActivityObserver.wasUserActivity()) throw new UserActionDetectedException();
             final WaitingList setWaitingList = waitingList.get();
             if (!verifyWaitingList(setWaitingList) && System.currentTimeMillis() < waitUntil.longValue()) {
                 logger.info("waiting list has not passed checks and waiting time does not expired - interrupt routine task");
@@ -111,21 +120,19 @@ class RoutineScenarioProcessor implements Runnable {
             }
             cache.invalidate();
             if (scenario.getType() == ScenarioType.repeatable && wasPerformed >= activities.size() - 1) {
-                @SuppressWarnings("unchecked") final Map<ScenarioDataType, String> data = scenario.getData().orElse(Collections.EMPTY_MAP);
+                final Map<ScenarioDataType, String> data = scenario.getData().orElse(Map.of());
                 final String repeatDelayValue = data.get(ScenarioDataType.repeatDelay);
                 if (repeatDelayValue != null) {
-                    ScenarioDataType.repeatDelay.getUnit().orElse(Settings.DEFAULT_TIME_UNIT)
-                            .sleep(Long.parseLong(repeatDelayValue));
+                    final TimeUnit timeUnit = ScenarioDataType.repeatDelay.getUnit().orElse(Settings.DEFAULT_TIME_UNIT);
+                    logger.info("scenario marked as repeatable with {} {} delay - perform delay",
+                            repeatDelayValue, timeUnit.name().toLowerCase());
+                    timeUnit.sleep(Long.parseLong(repeatDelayValue));
                 }
             }
-//            doRandomDelay(); // maybe optionally
+//            doRandomDelay(); //FIXME maybe optionally
             logger.info("routine task done");
         } catch (UserActionDetectedException e) {
             lastUserKeyEventTime.set(userActivityObserver.getLastUserKeyEventTime());
-            cache.invalidate();
-            userActivityObserver.reset();
-            repeatableIndex.set(0);
-            repeatableCounter.set(0);
             logger.info("routine interrupted cause of user activity");
         } catch (InterruptedException e) {
             logger.warn(e.getMessage(), e);
@@ -138,7 +145,7 @@ class RoutineScenarioProcessor implements Runnable {
     private UserMessageException makeShotAndGetException(final String message) {
         final String fileNameForWrongShot = CommonUtil.getFileNameForWrongShot();
         logger.warn("{} ({})", message, fileNameForWrongShot);
-        CommonUtil.saveImage(Win32System.getInstance().getScreenShotMaker().takeWholeScreen(),
+        CommonUtil.saveImage(win32Adapter.takeScreenShot(),
                 CommonUtil.getPathForWrongShots(workingDirectory),
                 fileNameForWrongShot);
         return new UserMessageException(message);

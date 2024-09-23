@@ -20,9 +20,9 @@ class ScenarioEditorForm extends JPanel implements Displayable {
     private final SupplierThrowing<Scenario, IllegalInputException> scenarioSupplier;
     private final JLabel scenarioPathLabel;
 
-    private ScenarioEditorForm(final TaskDispatcher taskDispatcher, final Scenario scenario) {
+    private ScenarioEditorForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final UiUtil uiUtil) {
         this.taskDispatcher = taskDispatcher;
-        this.state = new State(new UiUtil(this));
+        this.state = new State(uiUtil);
         final ScenarioEditPane scenarioEditPane = scenario != null ? new ScenarioEditPane(scenario, state) : new ScenarioEditPane(state);
         this.scenarioSupplier = scenarioEditPane;
         scenarioEditPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
@@ -34,13 +34,13 @@ class ScenarioEditorForm extends JPanel implements Displayable {
                 createButtonPane());
     }
 
-    ScenarioEditorForm(final TaskDispatcher taskDispatcher) {
-        this(taskDispatcher, null);
+    ScenarioEditorForm(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
+        this(taskDispatcher, null, uiUtil);
         scenarioPathLabel.setText("New scenario");
     }
 
-    ScenarioEditorForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile) {
-        this(taskDispatcher, scenario);
+    ScenarioEditorForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile, final UiUtil uiUtil) {
+        this(taskDispatcher, scenario, uiUtil);
         state.setWorkingDirectory(scenarioFile.getParentFile());
         state.setScenarioName(scenarioFile.getName());
         scenarioPathLabel.setText(scenarioFile.getAbsolutePath());

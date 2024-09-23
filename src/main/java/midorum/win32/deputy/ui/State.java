@@ -3,6 +3,7 @@ package midorum.win32.deputy.ui;
 import dma.file.FileInputStream;
 import dma.file.FileOutputStream;
 import midorum.win32.deputy.common.Either;
+import midorum.win32.deputy.common.Win32Adapter;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +24,10 @@ class State {
 
     public UiUtil getUtilities() {
         return utilities;
+    }
+
+    public Win32Adapter getWin32Adapter() {
+        return utilities.getWin32Adapter();
     }
 
     public File getWorkingDirectory() {

@@ -2,11 +2,11 @@ package midorum.win32.deputy.ui;
 
 import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
-import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.IWinUser;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.common.Win32Adapter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,9 +22,15 @@ class UiUtil {
 
     private final Logger logger = LogManager.getLogger("ui");
     private final Component parentComponent;
+    private final Win32Adapter win32Adapter;
 
-    public UiUtil(final Component parentComponent) {
+    public UiUtil(final Component parentComponent, final Win32Adapter win32Adapter) {
         this.parentComponent = parentComponent;
+        this.win32Adapter = win32Adapter;
+    }
+
+    public Win32Adapter getWin32Adapter() {
+        return win32Adapter;
     }
 
     public Optional<File> askFile(final File currentDirectory, final boolean shouldExist) {
@@ -83,7 +89,7 @@ class UiUtil {
                         CommonUtil.saveImage(image, CommonUtil.getPathForImages(state.getWorkingDirectory()), file.getName())
                                 .consumeOrHandleError(resultConsumer,
                                         e -> reportThrowable("Error occurred while saving image", e))),
-                () -> reportState("No rectangle was captured"))).display();
+                () -> reportState("No rectangle was captured")), win32Adapter).display();
     }
 
     public void pickFile(final State state, final Consumer<File> successFileConsumer) {
@@ -124,7 +130,7 @@ class UiUtil {
     }
 
     private void pickWindowByPoint(final Consumer<IWindow> resultConsumer) {
-        pickAbsolutePoint(pointInt -> Win32System.getInstance().getWindowByPoint(pointInt)
+        pickAbsolutePoint(pointInt -> win32Adapter.getWindowByPoint(pointInt)
                 .ifPresentOrElse(windowPoint -> resultConsumer.accept(windowPoint.window()),
                         () -> reportIllegalState("Cannot determine window by point: " + pointInt)));
     }

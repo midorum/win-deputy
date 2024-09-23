@@ -1,11 +1,11 @@
 package midorum.win32.deputy.ui;
 
-import com.midorum.win32api.facade.Win32System;
 import com.midorum.win32api.hook.GlobalKeyHook;
 import com.midorum.win32api.hook.KeyHookHelper;
 import com.midorum.win32api.win32.MsLcid;
 import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.SourceType;
 
 import javax.swing.*;
@@ -20,9 +20,13 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
 
     private final Component valueField;
     private final State state;
+    private final Win32Adapter win32Adapter;
 
-    public SourceTypeEditPane(final List<SourceType> sourceTypes, final String dataValue, final State state) {
+    public SourceTypeEditPane(final List<SourceType> sourceTypes,
+                              final String dataValue,
+                              final State state) {
         this.state = state;
+        this.win32Adapter = state.getWin32Adapter();
         final List<Component> components = new ArrayList<>();
         this.valueField = sourceTypes.contains(SourceType.userInput) ? new JTextField(dataValue)
                 : sourceTypes.contains(SourceType.keyboardLayoutChoice) ? createKeyboardLayoutComboBox(dataValue)
@@ -84,13 +88,12 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
 
     private Component createKeyboardLayoutComboBox(final String dataValue) {
         final List<String> layouts = new ArrayList<>();
-        Win32System.getInstance().getAvailableKeyboardLayouts()
-                .consumeOrHandleError((Consumer<? super MsLcid[]>) msLcids ->
-                                Arrays.stream(msLcids).forEach(msLcid -> layouts.add(msLcid.localeName())),
-                        e -> {
-                            state.getUtilities().logThrowable("Cannot obtain available keyboard layouts", e);
-                            layouts.add("en-US");
-                        });
+        win32Adapter.getAvailableKeyboardLayouts().consumeOrHandleError((Consumer<? super MsLcid[]>) msLcids ->
+                        Arrays.stream(msLcids).forEach(msLcid -> layouts.add(msLcid.localeName())),
+                e -> {
+                    state.getUtilities().logThrowable("Cannot obtain available keyboard layouts", e);
+                    layouts.add("en-US");
+                });
         final JComboBox<String> comboBox = new JComboBox<>(layouts.toArray(String[]::new));
         if (dataValue != null) {
             comboBox.setSelectedItem(dataValue);

@@ -6,6 +6,7 @@ import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.UserActivityObserver;
+import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,17 +15,18 @@ import java.util.Map;
 
 public class CommandProcessor {
 
-    public static final int MOUSE_SPEED_FACTOR = 1;
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
 
     private final Win32Cache cache;
     private final UserActivityObserver userActivityObserver;
-    private final Win32System win32System;
+    private final Win32Adapter win32Adapter;
 
-    public CommandProcessor(final Win32Cache cache, final UserActivityObserver userActivityObserver) {
+    public CommandProcessor(final Win32Cache cache,
+                            final UserActivityObserver userActivityObserver,
+                            final Win32Adapter win32Adapter) {
         this.cache = cache;
         this.userActivityObserver = userActivityObserver;
-        this.win32System = Win32System.getInstance();
+        this.win32Adapter = win32Adapter;
     }
 
     public void performCommand(final Command command) throws Win32ApiException, InterruptedException {
@@ -41,34 +43,29 @@ public class CommandProcessor {
     }
 
     private void minimizeAllWindows() {
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
-        win32System.minimizeAllWindows();
+        win32Adapter.minimizeAllWindows();
     }
 
     private void mouseLeftClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
-        final IMouse mouse = win32System.getScreenMouse(MOUSE_SPEED_FACTOR);
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
+        final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
         mouse.leftClick();
     }
 
     private void mouseDoubleLeftClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
-        final IMouse mouse = win32System.getScreenMouse(MOUSE_SPEED_FACTOR);
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
+        final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
         mouse.leftClick().leftClick();
     }
 
     private void mouseRightClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
-        final IMouse mouse = win32System.getScreenMouse(MOUSE_SPEED_FACTOR);
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
+        final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
         mouse.rightClick();
     }
 
     private void mouseDoubleRightClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
-        final IMouse mouse = win32System.getScreenMouse(MOUSE_SPEED_FACTOR);
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
+        final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
         mouse.rightClick().rightClick();
     }
@@ -78,7 +75,6 @@ public class CommandProcessor {
         if (mousePositionData != null) return CommonUtil.stringToPoint(mousePositionData)
                 .orElseThrow(() -> new IllegalStateException("cannot parse coordinates from " + mousePositionData));
         final String mouseShotRelatedPositionData = data.get(CommandDataType.mouseShotRelatedPosition);
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
         if (mouseShotRelatedPositionData != null) {
             final Rectangle location = cache.getStamp(mouseShotRelatedPositionData)
                     .orElseThrow(() -> new IllegalStateException("cannot obtain shot from " + mouseShotRelatedPositionData))
@@ -94,11 +90,9 @@ public class CommandProcessor {
         final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
         final String keyboardLayoutData = data.get(CommandDataType.keyboardLayout);
         if (keyboardLayoutData != null) {
-            if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
             window.setKeyboardLayout(MsLcid.fromLayoutName(keyboardLayoutData)
                     .orElseThrow(() -> new IllegalStateException("cannot parse keyboard layout: " + keyboardLayoutData)));
         }
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
         window.getKeyboard().type(keyboardTypeTextData, (order, virtualCode) -> {
             logger.trace(">>> put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
             final long lastUserKeyEventTime = userActivityObserver.putSelfKeyCode(virtualCode);
@@ -113,7 +107,6 @@ public class CommandProcessor {
         final long delay = keyboardKeyStrokeDelayValue != null ? Long.parseLong(keyboardKeyStrokeDelayValue) : 0L;
         final HotKey hotKey = HotKey.valueOf(keyboardKeyStrokeData);
         final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
         window.getKeyboard().enterHotKey(hotKey, delay, (order, virtualCode) -> {
             logger.trace(">>> put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
             final long lastUserKeyEventTime = userActivityObserver.putSelfKeyCode(virtualCode);
@@ -122,12 +115,11 @@ public class CommandProcessor {
     }
 
     private IWindow getWindow(final String windowTitleData, final String windowClassNameData) {
-        if (userActivityObserver.getLastUserKeyEventTime() > 0) throw new UserActionDetectedException();
         return windowTitleData != null || windowClassNameData != null
                 ? cache.getWindow(windowTitleData, windowClassNameData)
                 .orElseThrow(() -> new IllegalStateException("cannot obtain window with title [" + windowTitleData + "]" +
                         " and class [" + windowClassNameData + "]"))
-                : win32System.getForegroundWindow()
+                : win32Adapter.getForegroundWindow()
                 .orElseThrow(() -> new IllegalStateException("cannot obtain foreground window"));
     }
 
