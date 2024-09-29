@@ -32,4 +32,13 @@ public class IntegerTextField extends JFormattedTextField {
         setText(value);
     }
 
+    public IntegerTextField() {
+        this(Integer.MIN_VALUE, Integer.MAX_VALUE);
+    }
+
+    public IntegerTextField(final String value) {
+        this();
+        setText(value);
+    }
+
 }

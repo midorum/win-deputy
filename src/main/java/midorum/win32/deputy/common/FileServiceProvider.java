@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import dma.file.FileInputStream;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -48,7 +49,7 @@ public class FileServiceProvider {
         }
 
         public BufferedImage readImage() throws IOException {
-            return ImageIO.read(file);
+            return FileInputStream.getInstance().useWithInputStream(file, ImageIO::read);
         }
 
         public File writeJson(final Object object) throws IOException {
@@ -63,5 +64,6 @@ public class FileServiceProvider {
         public String getFileName() {
             return file.getName();
         }
+
     }
 }

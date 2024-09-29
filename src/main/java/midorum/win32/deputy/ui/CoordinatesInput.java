@@ -12,30 +12,51 @@ class CoordinatesInput extends JPanel {
     private final IntegerTextField xField;
     private final IntegerTextField yField;
 
-    CoordinatesInput(final State state) {
-        this.state = state;
+    public static CoordinatesInput getForAbsoluteCoordinates(final String value, final State state) {
         final DisplayMode currentDisplayMode = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode();
         final int topWidth = currentDisplayMode.getWidth() - 1;
         final int topHeight = currentDisplayMode.getHeight() - 1;
-        xField = new IntegerTextField(0, topWidth);
-        yField = new IntegerTextField(0, topHeight);
-        SwingUtil.putComponentsToHorizontalGrid(this,
-                new double[]{0.0, 0.5, 0.0, 0.5},
-                new JLabel("x (0-" + topWidth + ")"),
-                xField,
-                new JLabel("y (0-" + topHeight + ")"),
-                yField
-        );
+        return new CoordinatesInput(0, topWidth,
+                0, topHeight,
+                "x (0-" + topWidth + ")", "y (0-" + topHeight + ")",
+                value, state);
     }
 
-    CoordinatesInput(final String value, final State state) {
-        this(state);
+    public static CoordinatesInput getForAbsoluteCoordinates(final State state) {
+        return getForAbsoluteCoordinates(null, state);
+    }
+
+    public static CoordinatesInput getForCoordinatesOffset(final String value, final State state) {
+        return new CoordinatesInput(Integer.MIN_VALUE, Integer.MAX_VALUE,
+                Integer.MIN_VALUE, Integer.MAX_VALUE,
+                "x", "y",
+                value, state);
+    }
+
+    public static CoordinatesInput getForCoordinatesOffset(final State state) {
+        return getForCoordinatesOffset(null, state);
+    }
+
+    private CoordinatesInput(final int xLowBound, final int xTopBound,
+                             final int yLowBound, final int yTopBound,
+                             final String xLabel, final String yLabel,
+                             final String value, final State state) {
+        this.state = state;
+        xField = new IntegerTextField(xLowBound, xTopBound);
+        yField = new IntegerTextField(yLowBound, yTopBound);
         if (value != null) {
             CommonUtil.stringToPoint(value).ifPresentOrElse(pointInt -> {
                 xField.setText(Integer.toString(pointInt.x()));
                 yField.setText(Integer.toString(pointInt.y()));
             }, () -> state.getUtilities().reportIllegalState("Cannot parse coordinates: " + value));
         }
+        SwingUtil.putComponentsToHorizontalGrid(this,
+                new double[]{0.0, 0.5, 0.0, 0.5},
+                new JLabel(xLabel),
+                xField,
+                new JLabel(yLabel),
+                yField
+        );
     }
 
     public void setDataValue(final String value) {

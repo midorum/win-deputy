@@ -6,7 +6,7 @@ import java.util.List;
 import static midorum.win32.deputy.model.CheckDataType.*;
 
 public enum CheckType {
-    processExists(Constants.PROCESS_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST),
+    processExists(Constants.PROCESS_MANDATORY_CHECK_DATA_TYPES, List.of(processExistsGreaterThan, processExistsLessThan)),
     processNotExists(Constants.PROCESS_MANDATORY_CHECK_DATA_TYPES, Collections.EMPTY_LIST),
     windowExists(Constants.WINDOW_MANDATORY_CHECK_DATA_TYPES, List.of(windowClassName, windowStyleIs,
             windowExStyleIs, windowForeground)),

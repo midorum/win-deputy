@@ -5,6 +5,9 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public enum CommandDataType {
+    processName(List.of(SourceType.userInput, SourceType.pickWindowProcessName)),
+    processExistsGreaterThan(List.of(SourceType.positiveIntegerInput), TimeUnit.SECONDS),
+    processExistsLessThan(List.of(SourceType.positiveIntegerInput), TimeUnit.SECONDS),
     windowTitle(List.of(SourceType.userInput, SourceType.pickWindowTitle)),
     windowClassName(List.of(SourceType.userInput, SourceType.pickWindowClassName)),
     windowStyleIs(List.of(SourceType.userInput, SourceType.pickWindowStyles)),
@@ -15,7 +18,8 @@ public enum CommandDataType {
     windowExStyleNotExists(List.of(SourceType.windowExStyleChoice)),
     windowForeground(List.of(SourceType.booleanChoice)),
     mousePosition(List.of(SourceType.coordinatesInput, SourceType.pickAbsolutePoint)),
-    mouseShotRelatedPosition(List.of(SourceType.pickFile, SourceType.makeShot)), // todo add types for pick relative point
+    mouseShotRelatedPosition(List.of(SourceType.pickFile, SourceType.makeShot)),
+    mouseRelativePosition(List.of(SourceType.coordinatesOffsetInput)),
     keyboardTypeText(List.of(SourceType.userInput)),
     keyboardLayout(List.of(SourceType.keyboardLayoutChoice)),
     keyboardKeyStroke(List.of(SourceType.userInput, SourceType.captureKeystroke)),

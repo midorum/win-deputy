@@ -61,5 +61,6 @@ public enum SourceType {
      * этот тип запрещает произвольный пользовательский ввод, вместо этого должен быть отрисован выбор предопределенного значения
      */
     keyboardLayoutChoice,
+    coordinatesOffsetInput,
     positiveIntegerInput
 }

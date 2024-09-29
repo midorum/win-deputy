@@ -21,21 +21,21 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     private final JPanel commandsPane;
     private final WaitingListEditWrapperPane waitingListEditWrapperPane;
     private final JCheckBox repeatableCheckBox;
+    private final JCheckBox producesFragileStateCheckBox;
 
     ActivityEditPane(final Activity activity, final State state) {
         final Activity activityChecked = Validator.checkNotNull(activity).orThrow("activity");
         this.state = state;
-        checks = new ArrayList<>();
+        this.checks = new ArrayList<>();
         final List<Check> activityChecks = activityChecked.getChecks();
         if (activityChecks != null) {
             checks.addAll(activityChecks.stream()
-                    .map(check -> new CheckEditPane(check, state))
-                    .map(CheckWrapperPane::new)
+                    .map(check -> new CheckWrapperPane(check, state))
                     .collect(Collectors.toCollection(ArrayList::new)));
         } else {
             checks.add(new CheckWrapperPane(state));
         }
-        commands = new ArrayList<>();
+        this.commands = new ArrayList<>();
         final List<Command> activityCommands = activityChecked.getCommands();
         if (activityCommands != null) {
             commands.addAll(activityCommands.stream()
@@ -45,22 +45,24 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         } else {
             commands.add(new CommandWrapperPane(state));
         }
-        titleField = new JTextField(activityChecked.getTitle());
-        descriptionField = new JTextArea(activityChecked.getDescription().orElse(null));
-        checksPane = new JPanel(new GridBagLayout());
+        this.titleField = new JTextField(activityChecked.getTitle());
+        this.descriptionField = new JTextArea(activityChecked.getDescription().orElse(null));
+        this.checksPane = new JPanel(new GridBagLayout());
         checksPane.setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
-        commandsPane = new JPanel(new GridBagLayout());
+        this.commandsPane = new JPanel(new GridBagLayout());
         commandsPane.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
-        waitingListEditWrapperPane = activityChecked.getWaitingList()
+        this.waitingListEditWrapperPane = activityChecked.getWaitingList()
                 .map(waitingList -> new WaitingListEditWrapperPane(waitingList, state))
                 .orElse(new WaitingListEditWrapperPane(state));
         waitingListEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
-        repeatableCheckBox = new JCheckBox("repeatable", activityChecked.isRepeatable());
+        this.repeatableCheckBox = new JCheckBox("repeatable", activityChecked.isRepeatable());
+        this.producesFragileStateCheckBox = new JCheckBox("produces fragile state", activityChecked.producesFragileState());
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 titleField,
                 descriptionField,
                 repeatableCheckBox,
+                producesFragileStateCheckBox,
                 checksPane,
                 commandsPane,
                 waitingListEditWrapperPane);
@@ -103,6 +105,14 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         checks.remove(checkPane);
         checks.add(currentIndex + 1, checkPane);
         repaintChecks();
+    }
+
+    private boolean canIgnoreCheck() {
+        if (checks.stream().filter(checkWrapperPane -> !checkWrapperPane.isIgnore()).findAny().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "You cannot ignore last check from activity");
+            return false;
+        }
+        return true;
     }
 
     private void repaintChecks() {
@@ -169,7 +179,9 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 validateAndGetChecks(),
                 validateAndGetCommands(),
                 waitingListEditWrapperPane.get(),
-                repeatableCheckBox.isSelected());
+                repeatableCheckBox.isSelected(),
+                producesFragileStateCheckBox.isSelected(),
+                false);
     }
 
     private String validateAndGetActivityTitle() throws IllegalInputException {
@@ -223,17 +235,25 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     private class CheckWrapperPane extends JPanel implements SupplierThrowing<Check, IllegalInputException> {
 
         private final CheckEditPane checkEditPane;
+        private final JCheckBox ignoreCheckBox;
 
-        private CheckWrapperPane(final CheckEditPane checkEditPane) {
-            this.checkEditPane = checkEditPane;
-            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
+        public CheckWrapperPane(final Check check, final State state) {
+            this.checkEditPane = new CheckEditPane(check, state);
+            this.ignoreCheckBox = createIgnoreCheckBox(check.isIgnore());
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(ignoreCheckBox), checkEditPane);
         }
 
         public CheckWrapperPane(final State state) {
-            this(new CheckEditPane(state));
+            this.checkEditPane = new CheckEditPane(state);
+            this.ignoreCheckBox = createIgnoreCheckBox(false);
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(ignoreCheckBox), checkEditPane);
         }
 
-        private JPanel createButtonsPane() {
+        private boolean isIgnore() {
+            return ignoreCheckBox.isSelected();
+        }
+
+        private JPanel createButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
             panel.add(new JLabel("Check"));
@@ -241,6 +261,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
             panel.add(createDeleteButton());
+            if (components != null) for (final Component c : components) panel.add(c);
             return panel;
         }
 
@@ -268,9 +289,22 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
             return btn;
         }
 
+        private JCheckBox createIgnoreCheckBox(final boolean ignore) {
+            final JCheckBox checkBox;
+            checkBox = new JCheckBox("ignore");
+            checkBox.addActionListener(e -> {
+                if (checkBox.isSelected() && !canIgnoreCheck()) {
+                    checkBox.setSelected(false);
+                }
+            });
+            checkBox.setSelected(ignore);
+            return checkBox;
+        }
+
         @Override
         public Check get() throws IllegalInputException {
-            return checkEditPane.get();
+            final Check check = checkEditPane.get();
+            return new Check(check.getType(), check.getData(), ignoreCheckBox.isSelected());
         }
     }
 

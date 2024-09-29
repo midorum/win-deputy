@@ -6,8 +6,6 @@ import midorum.win32.deputy.model.IExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -27,11 +25,10 @@ public class UserActivityObserver {
         final int adjustedCode = getAdjustedCode(event);
         if (poll == null || adjustedCode != poll) {
             lastUserKeyEventTime.set(System.currentTimeMillis());
-            logger.trace(() -> ">>> poll: " + poll
+            logger.trace(() -> "poll: " + poll
                     + " event virtualCode: " + adjustedCode
                     + " set lastUserKeyEventTime: " + lastUserKeyEventTime
-                    + " " + Instant.ofEpochMilli(lastUserKeyEventTime.get())
-                    .atZone(ZoneId.systemDefault()).toLocalDateTime());
+                    + " " + CommonUtil.localTimeString(lastUserKeyEventTime.get()));
         }
     }
 

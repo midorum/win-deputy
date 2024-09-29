@@ -10,7 +10,7 @@ public enum ScenarioType {
     /**
      * Повторяется бесконечно
      */
-    repeatable(List.of(), List.of(ScenarioDataType.repeatDelay));
+    repeatable(List.of(), List.of(ScenarioDataType.repeatDelay, ScenarioDataType.randomDelay));
 
     private final List<ScenarioDataType> mandatory;
     private final List<ScenarioDataType> optional;

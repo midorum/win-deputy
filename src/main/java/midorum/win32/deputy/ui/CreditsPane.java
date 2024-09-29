@@ -5,6 +5,8 @@ import midorum.win32.deputy.model.TaskDispatcher;
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
+import java.io.File;
+import java.io.IOException;
 
 class CreditsPane extends JPanel {
 
@@ -14,9 +16,11 @@ class CreditsPane extends JPanel {
             " by <a href=\"https://iconscout.com/contributors/zach\">Flaticons</a>" +
             " on <a href=\"https://iconscout.com\">IconScout</a>";
     private final TaskDispatcher taskDispatcher;
+    private final UiUtil uiUtil;
 
     CreditsPane(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = taskDispatcher;
+        this.uiUtil = uiUtil;
         final JEditorPane pane = new JEditorPane();
         pane.setContentType("text/html");//set content as html
         pane.setEditable(false);
@@ -40,8 +44,21 @@ class CreditsPane extends JPanel {
         buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
         buttonPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
         buttonPane.add(Box.createHorizontalGlue());
+        buttonPane.add(createOpenLogsButton());
         buttonPane.add(createCloseButton());
         return buttonPane;
+    }
+
+    private Button createOpenLogsButton() {
+        final Button btn = new Button("Logs");
+        btn.addActionListener(e -> {
+            try {
+                Desktop.getDesktop().open(new File("logs"));
+            } catch (IOException ex) {
+                uiUtil.reportThrowable("Cannot open logs location", ex);
+            }
+        });
+        return btn;
     }
 
     private Button createCloseButton() {

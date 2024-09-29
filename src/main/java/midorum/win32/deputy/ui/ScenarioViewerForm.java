@@ -33,12 +33,17 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     private Button createScenarioButton;
     private final AtomicReference<GlobalKeyHook> cancelKeyHook = new AtomicReference<>();
     private final UserActivityObserver userActivityObserver;
+    private Button showSettingsButton;
 
     ScenarioViewerForm(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = Validator.checkNotNull(taskDispatcher).orThrowForSymbol("taskDispatcher");
         this.state = new State(uiUtil);
         this.userActivityObserver = new UserActivityObserver();
-        this.executor = new ExecutorImpl(userActivityObserver, uiUtil.getWin32Adapter());
+        final Settings settings = Settings.loadFromFile().getOrHandleError(e -> {
+            uiUtil.logThrowable("cannot load settings from file", e);
+            return Settings.defaultSettings();
+        });
+        this.executor = new ExecutorImpl(userActivityObserver, uiUtil.getWin32Adapter(), settings);
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
         this.scenarioDescriptionLabel = new JLabel();
@@ -82,6 +87,8 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         buttonPane.add(runScenarioButton);
         stopScenarioButton = createStopScenarioButton();
         buttonPane.add(stopScenarioButton);
+        showSettingsButton = createShowSettingsButton();
+        buttonPane.add(showSettingsButton);
         buttonPane.add(createShowCreditsButton());
         return buttonPane;
     }
@@ -110,7 +117,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         btn.addActionListener(e -> {
             if (scenario != null) {
                 lockForm();
-                final GlobalKeyHook oldHook = cancelKeyHook.getAndSet(setCancelTaskHook2());
+                final GlobalKeyHook oldHook = cancelKeyHook.getAndSet(setCancelTaskHook());
                 if (oldHook != null) oldHook.unhook();
                 executor.sendRoutineTask(state.getWorkingDirectory(), scenario, throwable -> {
                     if (throwable instanceof UserMessageException ex) {
@@ -140,6 +147,12 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         return btn;
     }
 
+    private Button createShowSettingsButton() {
+        final Button btn = new Button("Settings");
+        btn.addActionListener(e -> taskDispatcher.showSettings());
+        return btn;
+    }
+
     private Button createShowCreditsButton() {
         final Button btn = new Button("Credits");
         btn.addActionListener(e -> taskDispatcher.showCredits());
@@ -152,6 +165,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         createScenarioButton.setEnabled(false);
         runScenarioButton.setEnabled(false);
         stopScenarioButton.setEnabled(true);
+        showSettingsButton.setEnabled(false);
     }
 
     private void unlockForm() {
@@ -160,30 +174,16 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         createScenarioButton.setEnabled(true);
         runScenarioButton.setEnabled(true);
         stopScenarioButton.setEnabled(false);
+        showSettingsButton.setEnabled(true);
     }
 
     private GlobalKeyHook setCancelTaskHook() {
-        return KeyHookHelper.getInstance().setGlobalHook(
-                new KeyHookHelper.KeyEventBuilder().virtualKey(Win32VirtualKey.VK_S).withControl().withShift().build(),
-                KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
-                keyEvent -> {
-                    final boolean result = executor.cancelCurrentTask();
-                    if (result)
-                        unlockForm();
-                    return result;// release the hook when task cancelled
-                }, throwable -> {
-                    state.getUtilities().logThrowable("error occurred while cancel executing task", throwable);
-                    return true; // release hook
-                });
-    }
-
-    private GlobalKeyHook setCancelTaskHook2() {
         final GlobalKeyHook.KeyEvent stopKey = new KeyHookHelper.KeyEventBuilder()
                 .virtualKey(Win32VirtualKey.VK_S).withControl().withShift().build();
         final KeyHookHelper keyHookHelper = KeyHookHelper.getInstance();
         return keyHookHelper.setGlobalHook(
                 keyEvent -> {
-                    executorLogger.trace(() -> ">>> GlobalHook: keyEvent: " + keyEvent + " " + keyEvent.toPrettyString());
+                    executorLogger.trace(() -> "GlobalHook: keyEvent: " + keyEvent + " " + keyEvent.toPrettyString());
                     userActivityObserver.checkKeyEvent(keyEvent);
                     final boolean isNeedStop = KeyHookHelper.KeyEventComparator.byAltControlShiftCode.compare(stopKey, keyEvent) == 0;
                     if (isNeedStop && executor.cancelCurrentTask()) {

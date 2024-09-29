@@ -6,7 +6,7 @@
 
     <groupId>midorum.win32</groupId>
     <artifactId>win-deputy</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 
     <properties>
         <project.organization.name>midorum</project.organization.name>
@@ -103,6 +103,8 @@
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
                             <mainClass>${project.entryPoint}</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
                             <Build-Time>${maven.build.timestamp}</Build-Time>
@@ -182,8 +184,15 @@
                             <classPath>
                                 <mainClass>${project.entryPoint}</mainClass>
                             </classPath>
+                            <singleInstance>
+                                <mutexName>${artifactId}</mutexName>
+                                <windowTitle>${artifactId}</windowTitle>
+                            </singleInstance>
                             <jre>
                                 <minVersion>${jre.min.version}</minVersion>
+                                <opts>
+                                    <opt>-Dlog4j.configurationFile=log4j2.xml</opt>
+                                </opts>
                             </jre>
                             <icon>${project.basedir}/src/main/resources/icons/droid-robot.ico</icon>
                             <versionInfo>
