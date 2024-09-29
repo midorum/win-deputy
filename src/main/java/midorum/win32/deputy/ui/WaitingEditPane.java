@@ -24,8 +24,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         final List<Check> waitingChecks = waiting.getChecks();
         if (waitingChecks != null) {
             checks.addAll(waitingChecks.stream()
-                    .map(check -> new CheckEditPane(check, state))
-                    .map(CheckWrapperPane::new)
+                    .map(check -> new CheckWrapperPane(check, state))
                     .collect(Collectors.toCollection(ArrayList::new)));
         } else {
             checks.add(new CheckWrapperPane(state));
@@ -80,6 +79,14 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         repaintChecks();
     }
 
+    private boolean canIgnoreCheck() {
+        if (checks.stream().filter(checkWrapperPane -> !checkWrapperPane.isIgnore()).findAny().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "You cannot ignore last check from waiting");
+            return false;
+        }
+        return true;
+    }
+
     private void repaintChecks() {
         checksPane.removeAll();
         fillChecksGrid();
@@ -98,7 +105,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
 
     private String validateAndGetDescription() throws IllegalInputException {
         final String description = descriptionField.getText();
-        if(description == null || description.isBlank()) {
+        if (description == null || description.isBlank()) {
             descriptionField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
             throw new IllegalInputException("Waiting should have some description");
         }
@@ -110,14 +117,14 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         final List<Check> checkList = new ArrayList<>();
         for (CheckWrapperPane next : checks) {
             final Check check = next.get();
-            if(!Waiting.validateCheckListItem(check)) {
+            if (!Waiting.validateCheckListItem(check)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
                 throw new IllegalInputException("Illegal check");
             }
             next.setBorder(null);
             checkList.add(check);
         }
-        if(!Waiting.validateChecks(checkList)) {
+        if (!Waiting.validateChecks(checkList)) {
             checksPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
             throw new IllegalInputException("Illegal checks");
         }
@@ -128,17 +135,25 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
     private class CheckWrapperPane extends JPanel implements SupplierThrowing<Check, IllegalInputException> {
 
         private final CheckEditPane checkEditPane;
+        private final JCheckBox ignoreCheckBox;
 
-        private CheckWrapperPane(final CheckEditPane checkEditPane) {
-            this.checkEditPane = checkEditPane;
-            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(), checkEditPane);
+        private CheckWrapperPane(final Check check, final State state) {
+            this.checkEditPane = new CheckEditPane(check, state);
+            this.ignoreCheckBox = createIgnoreCheckBox(check.isIgnore());
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(ignoreCheckBox), checkEditPane);
         }
 
         public CheckWrapperPane(final State state) {
-            this(new CheckEditPane(state));
+            this.checkEditPane = new CheckEditPane(state);
+            this.ignoreCheckBox = createIgnoreCheckBox(false);
+            SwingUtil.putComponentsToVerticalGrid(this, -1, createButtonsPane(ignoreCheckBox), checkEditPane);
         }
 
-        private JPanel createButtonsPane() {
+        private boolean isIgnore() {
+            return ignoreCheckBox.isSelected();
+        }
+
+        private JPanel createButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
             panel.add(new JLabel("Check"));
@@ -146,6 +161,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
             panel.add(createDeleteButton());
+            if (components != null) for (final Component c : components) panel.add(c);
             return panel;
         }
 
@@ -171,6 +187,17 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
             final Button btn = new Button("v");
             btn.addActionListener(e -> moveCheckDown(this));
             return btn;
+        }
+
+        private JCheckBox createIgnoreCheckBox(final boolean ignore) {
+            final JCheckBox checkBox = new JCheckBox("ignore");
+            checkBox.setSelected(ignore);
+            checkBox.addActionListener(e -> {
+                if (checkBox.isSelected() && !canIgnoreCheck()) {
+                    checkBox.setSelected(false);
+                }
+            });
+            return checkBox;
         }
 
         @Override

@@ -4,6 +4,8 @@ package midorum.win32.deputy.model;
 ///import am.ik.yavi.core.Constraint;
 ///import am.ik.yavi.core.Validator;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -28,14 +30,24 @@ public class Activity {
     private final List<Command> commands;
     private final WaitingList waitingList;
     private final boolean repeatable;
+    private final boolean producesFragileState;
+    private final boolean ignore;
 
-    public Activity(String title, String description, List<Check> checks, List<Command> commands, WaitingList waitingList, final boolean repeatable) {
+    public Activity(String title, String description,
+                    List<Check> checks,
+                    List<Command> commands,
+                    WaitingList waitingList,
+                    final boolean repeatable,
+                    final boolean producesFragileState,
+                    final boolean ignore) {
         this.title = title;
         this.description = description;
         this.checks = List.copyOf(checks); // unmodifiable list
         this.commands = List.copyOf(commands); // unmodifiable list
         this.waitingList = waitingList;
         this.repeatable = repeatable;
+        this.producesFragileState = producesFragileState;
+        this.ignore = ignore;
     }
 
     public Activity() {
@@ -45,6 +57,8 @@ public class Activity {
         this.commands = null;
         this.waitingList = null;
         this.repeatable = false;
+        this.producesFragileState = false;
+        this.ignore = false;
     }
 
     public static boolean validateCheckListItem(final Check check) {
@@ -87,6 +101,15 @@ public class Activity {
         return repeatable;
     }
 
+    @JsonProperty("producesFragileState")
+    public boolean producesFragileState() {
+        return producesFragileState;
+    }
+
+    public boolean isIgnore() {
+        return ignore;
+    }
+
     @Override
     public String toString() {
         return "Activity{" +
@@ -95,6 +118,9 @@ public class Activity {
                 ", checks=" + checks +
                 ", commands=" + commands +
                 ", waitingList=" + waitingList +
+                ", repeatable=" + repeatable +
+                ", producesFragileState=" + producesFragileState +
+                ", ignore=" + ignore +
                 '}';
     }
 }

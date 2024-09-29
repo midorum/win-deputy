@@ -6,14 +6,20 @@ import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.TaskDispatcher;
+import org.apache.logging.log4j.Logger;
 
 import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 public class MainForm implements TaskDispatcher {
@@ -23,16 +29,64 @@ public class MainForm implements TaskDispatcher {
     private final UiUtil uiUtil;
 
     public MainForm() {
-        this.frame = new JFrame("Win Deputy");
+        final String appVersion = getVersion();
+        this.frame = new JFrame("Win Deputy v" + appVersion);
+
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.frame.setPreferredSize(new Dimension(700, 500));
         this.uiUtil = new UiUtil(frame, new Win32Adapter(new UserActivityObserver()));
+        final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        this.frame.setPreferredSize(new Dimension(700, screenSize.height));
         this.state = State.loadState(uiUtil).getOrHandleError(e -> {
             if (!(e instanceof FileNotFoundException)) {
                 uiUtil.reportThrowable("Error occurred while loading application state", e);
             }
             return new State(uiUtil);
         });
+        setIcon();
+        final Logger logger = uiUtil.getLogger();
+        logger.info("--------------------------------------------------------");
+        logger.info("version: {}", appVersion);
+        logger.info("build time: {}", buildTimeString().orElse("N/A"));
+        logger.info("java.version: {}", System.getProperty("java.version"));
+        logger.info("java.home: {}", System.getProperty("java.home"));
+        logger.info("java.vendor: {}", System.getProperty("java.vendor"));
+        logger.info("os.name: {}", System.getProperty("os.name"));
+        logger.info("os.version: {}", System.getProperty("os.version"));
+        logger.info("system architecture: {}", System.getProperty("sun.arch.data.model"));
+        logger.info("display mode: {}", GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getDefaultScreenDevice().getDisplayMode());
+        logger.info("--------------------------------------------------------");
+
+        logger.info(" name {}", getClass().getName());
+        logger.info(" simple name {}", getClass().getSimpleName());
+        logger.info(" canonical name {}", getClass().getCanonicalName());
+    }
+
+    private void setIcon() {
+        try {
+            final URL resource = getClass().getResource("/icons/droid-robot.png");
+            if (resource != null) this.frame.setIconImage(ImageIO.read(resource));
+        } catch (IOException e) {
+            uiUtil.logThrowable("Error occurred while loading application icon", e);
+        }
+    }
+
+    private Optional<String> buildTimeString() {
+        final URL resource = getClass().getResource(getClass().getSimpleName() + ".class");
+        if (resource != null) {
+            final String protocol = resource.getProtocol();
+            try {
+                if ("file".equals(protocol)) {
+                    return Optional.of(CommonUtil.utcTimeString(new File(resource.toURI()).lastModified()));
+                } else if ("jar".equals(protocol)) {
+                    return Optional.ofNullable(((JarURLConnection) resource.openConnection())
+                            .getManifest().getMainAttributes().getValue("Build-Time"));
+                }
+            } catch (IOException | URISyntaxException e) {
+                uiUtil.getLogger().error("cannot obtain build time", e);
+            }
+        }
+        return Optional.empty();
     }
 
     public static void main(String[] args) {
@@ -50,6 +104,10 @@ public class MainForm implements TaskDispatcher {
         contentPane.removeAll();
         SwingUtil.putComponentsToVerticalGrid(contentPane, 0, form);
         contentPane.revalidate();
+    }
+
+    private String getVersion() {
+        return getClass().getPackage().getImplementationVersion();
     }
 
     @Override
@@ -104,6 +162,16 @@ public class MainForm implements TaskDispatcher {
     @Override
     public void closeCredits() {
         resetScenarioViewerForm();
+    }
+
+    @Override
+    public void closeSettings() {
+        resetScenarioViewerForm();
+    }
+
+    @Override
+    public void showSettings() {
+        showForm(new SettingsPane(this, uiUtil));
     }
 
     private void loadScenarioPath(final String scenarioPath, final BiConsumer<Either<Scenario, IOException>, File> scenarioConsumer) {

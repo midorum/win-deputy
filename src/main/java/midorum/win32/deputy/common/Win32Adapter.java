@@ -65,7 +65,7 @@ public class Win32Adapter {
     public IMouse getScreenMouse() {
         //FIXME we have to check user activity so early because this method returns a common interface; we need return an adapter here
         if (userActivityObserver.wasUserActivity()) throw new UserActionDetectedException();
-        return Win32System.getInstance().getScreenMouse(Settings.MOUSE_SPEED_FACTOR);
+        return Win32System.getInstance().getScreenMouse(DefaultSettings.MOUSE_SPEED_FACTOR);
     }
 
     public void minimizeAllWindows() {

@@ -31,7 +31,8 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         this.valueField = sourceTypes.contains(SourceType.userInput) ? new JTextField(dataValue)
                 : sourceTypes.contains(SourceType.keyboardLayoutChoice) ? createKeyboardLayoutComboBox(dataValue)
                 : sourceTypes.contains(SourceType.booleanChoice) ? createBooleanChoiceComboBox(dataValue)
-                : sourceTypes.contains(SourceType.coordinatesInput) ? new CoordinatesInput(dataValue, state)
+                : sourceTypes.contains(SourceType.coordinatesInput) ? CoordinatesInput.getForAbsoluteCoordinates(dataValue, state)
+                : sourceTypes.contains(SourceType.coordinatesOffsetInput) ? CoordinatesInput.getForCoordinatesOffset(dataValue, state)
                 : sourceTypes.contains(SourceType.positiveIntegerInput) ? new IntegerTextField(0, Integer.MAX_VALUE, dataValue)
                 : new JLabel(dataValue);
         components.add(valueField);

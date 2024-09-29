@@ -5,7 +5,7 @@ import dma.util.Delay;
 import dma.util.DurationFormatter;
 import dma.validation.Validator;
 import midorum.win32.deputy.common.CommonUtil;
-import midorum.win32.deputy.common.Settings;
+import midorum.win32.deputy.common.DefaultSettings;
 import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.*;
@@ -13,11 +13,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,24 +28,27 @@ class RoutineScenarioProcessor implements Runnable {
     private final Scenario scenario;
     private final UserActivityObserver userActivityObserver;
     private final Win32Adapter win32Adapter;
+    private final Settings settings;
     private final Win32Cache cache;
     private final CheckProcessor checkProcessor;
     private final CommandProcessor commandProcessor;
     private final AtomicReference<WaitingList> waitingList = new AtomicReference<>();
     private final AtomicLong waitUntil = new AtomicLong(0);
-    private final AtomicInteger repeatableIndex = new AtomicInteger(0);
+    private final AtomicInteger repeatableIndex = new AtomicInteger(-1);
     private final AtomicInteger repeatableCounter = new AtomicInteger(0);
     private final AtomicLong lastUserKeyEventTime = new AtomicLong(0);
+    private final AtomicBoolean beGentle = new AtomicBoolean(false);
 
     RoutineScenarioProcessor(final File workingDirectory,
                              final Scenario scenario,
                              final UserActivityObserver userActivityObserver,
-                             final Win32Adapter win32Adapter) {
+                             final Win32Adapter win32Adapter, final Settings settings) {
         this.workingDirectory = Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory");
         this.scenario = Validator.checkNotNull(scenario).orThrowForSymbol("scenario");
         this.userActivityObserver = Validator.checkNotNull(userActivityObserver).orThrowForSymbol("userActivityObserver");
         this.win32Adapter = win32Adapter;
-        this.cache = new Win32Cache(workingDirectory, win32Adapter);
+        this.settings = settings;
+        this.cache = new Win32Cache(workingDirectory, win32Adapter, settings);
         this.checkProcessor = new CheckProcessor(cache);
         this.commandProcessor = new CommandProcessor(cache, userActivityObserver, win32Adapter);
     }
@@ -54,20 +56,19 @@ class RoutineScenarioProcessor implements Runnable {
     @Override
     public void run() {
         try {
-            logger.info("routine task started");
+            logger.info("routine task started {}", beGentle.get() ? "(gentle mode)" : "");
             final long l = lastUserKeyEventTime.get();
             if (l > 0) {
                 cache.invalidate();
                 userActivityObserver.reset();
-                repeatableIndex.set(0);
+                repeatableIndex.set(-1);
                 repeatableCounter.set(0);
                 lastUserKeyEventTime.set(0);
                 logger.info("scenario executing paused cause of user activity ({}) due to {}",
                         l,
-                        Instant.ofEpochMilli(System.currentTimeMillis()
-                                        + TimeUnit.MILLISECONDS.convert(Settings.USER_ACTIVITY_DELAY, TimeUnit.SECONDS))
-                                .atZone(ZoneId.systemDefault()).toLocalDateTime());
-                TimeUnit.SECONDS.sleep(Settings.USER_ACTIVITY_DELAY);
+                        CommonUtil.localTimeString(System.currentTimeMillis()
+                                + TimeUnit.MILLISECONDS.convert(settings.userActivityDelay(), TimeUnit.SECONDS)));
+                TimeUnit.SECONDS.sleep(settings.userActivityDelay());
             }
             if (userActivityObserver.wasUserActivity()) throw new UserActionDetectedException();
             final WaitingList setWaitingList = waitingList.get();
@@ -84,6 +85,10 @@ class RoutineScenarioProcessor implements Runnable {
             int wasPerformed = -1;
             for (int i = 0; i < activities.size(); i++) {
                 final Activity activity = activities.get(i);
+                if (activity.isIgnore()) {
+                    logger.info("activity {} (\"{}\") marked as ignored - skip it", i, activity.getTitle());
+                    continue;
+                }
                 logger.info("verifying activity checks: {} (\"{}\")", i, activity.getTitle());
                 if (!verifyChecks(activity.getChecks())) {
                     logger.info("activity \"{}\" ({}) has not passed checks and skip", i, activity.getTitle());
@@ -92,48 +97,71 @@ class RoutineScenarioProcessor implements Runnable {
                 logger.info("activity {} (\"{}\") has passed checks and start perform commands", i, activity.getTitle());
                 performCommands(activity.getCommands());
                 final int currentIndex = i;
-                if (!activity.isRepeatable() && repeatableCounter.updateAndGet(operand ->
-                        currentIndex == repeatableIndex.getAndSet(currentIndex) ? operand + 1 : 0) == Settings.MAX_REPEATABLE_COUNT) {
+                final int activityRepeated = repeatableCounter.updateAndGet(operand ->
+                        currentIndex == repeatableIndex.getAndSet(currentIndex) ? operand + 1 : 0);
+                if (!activity.isRepeatable() && activityRepeated >= settings.maxRepeatableCount()) {
                     throw makeShotAndGetException("Activity \"" + activity.getTitle() + "\" (" + currentIndex + ")" +
-                            " was executed " + Settings.MAX_REPEATABLE_COUNT + " times in a row but it's not marked as repeatable." +
+                            " was executed " + settings.maxRepeatableCount() + " times in a row but it's not marked as repeatable." +
                             " Maybe you've missed something. Interrupt scenario execution");
+                }
+                if (activity.producesFragileState()) {
+                    logger.warn("Activity {} (\"{}\") marked as produces a fragile state. So try to perform next round gently.",
+                            i, activity.getTitle());
+                    beGentle.compareAndSet(false, true);
+                } else if (!activity.isRepeatable() && activityRepeated > 0) {
+                    logger.warn("Activity {} (\"{}\") was repeated two or more times in a row but it's not marked as repeatable." +
+                                    " Maybe we lost some subtle state. So try to perform next round gently.",
+                            i, activity.getTitle());
+                    beGentle.compareAndSet(false, true);
+                } else if (activityRepeated == 0) {
+                    beGentle.compareAndSet(true, false);
                 }
                 final int index = i;
                 activity.getWaitingList().ifPresent(waitingList -> {
                     this.waitingList.set(waitingList);
-                    final long waitUntilValue = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(waitingList.getTimeout(), TimeUnit.SECONDS);
+                    final long waitUntilValue = System.currentTimeMillis()
+                            + TimeUnit.MILLISECONDS.convert(waitingList.getTimeout(), TimeUnit.SECONDS);
                     waitUntil.set(waitUntilValue);
                     logger.info("activity {} (\"{}\") set waiting list \"{}\" until {}",
                             index,
                             activity.getTitle(),
                             waitingList.getList().stream().map(Waiting::getDescription).toList(),
-                            Instant.ofEpochMilli(waitUntilValue).atZone(ZoneId.systemDefault()).toLocalDateTime());
+                            CommonUtil.localTimeString(waitUntilValue));
                 });
                 wasPerformed = i;
                 break;
             }
+            cache.invalidate();
             if (wasPerformed < 0) {
                 throw makeShotAndGetException("No one activity was performed. Maybe you've missed something. Interrupt scenario execution");
             }
-            if (scenario.getType() == ScenarioType.oneTime && wasPerformed >= activities.size() - 1) {
+            if (wasPerformed < activities.size() - 1) {
+                logger.info("routine task done");
+                return;
+            }
+            if (scenario.getType() == ScenarioType.oneTime) {
                 throw new UserMessageException("Scenario \"" + scenario.getTitle() + "\" done its job");
             }
-            cache.invalidate();
-            if (scenario.getType() == ScenarioType.repeatable && wasPerformed >= activities.size() - 1) {
+            if (scenario.getType() == ScenarioType.repeatable) {
                 final Map<ScenarioDataType, String> data = scenario.getData().orElse(Map.of());
                 final String repeatDelayValue = data.get(ScenarioDataType.repeatDelay);
                 if (repeatDelayValue != null) {
-                    final TimeUnit timeUnit = ScenarioDataType.repeatDelay.getUnit().orElse(Settings.DEFAULT_TIME_UNIT);
+                    final TimeUnit timeUnit = ScenarioDataType.repeatDelay.getUnit().orElse(DefaultSettings.DEFAULT_TIME_UNIT);
                     logger.info("scenario marked as repeatable with {} {} delay - perform delay",
                             repeatDelayValue, timeUnit.name().toLowerCase());
                     timeUnit.sleep(Long.parseLong(repeatDelayValue));
                 }
+                final String randomDelayData = data.get(ScenarioDataType.randomDelay);
+                if (randomDelayData != null) {
+                    new Delay(1).randomSleep(0, Long.parseLong(randomDelayData),
+                            ScenarioDataType.randomDelay.getUnit().orElse(DefaultSettings.DEFAULT_TIME_UNIT),
+                            duration -> logger.info("scenario asked random delay - routine task delayed on {}",
+                                    new DurationFormatter(duration).toStringWithoutZeroParts()));
+                }
             }
-//            doRandomDelay(); //FIXME maybe optionally
-            logger.info("routine task done");
         } catch (UserActionDetectedException e) {
             lastUserKeyEventTime.set(userActivityObserver.getLastUserKeyEventTime());
-            logger.info("routine interrupted cause of user activity");
+            logger.warn("routine interrupted cause of user activity");
         } catch (InterruptedException e) {
             logger.warn(e.getMessage(), e);
             throw new ControlledInterruptedException(e);
@@ -185,8 +213,12 @@ class RoutineScenarioProcessor implements Runnable {
     }
 
     private boolean verifyCheck(final Check check) {
+        if (check.isIgnore()) {
+            logger.info("check {} marked as ignored - skip it", check);
+            return true;
+        }
         logger.info("verifying check: {}", check);
-        return checkProcessor.verifyCheck(check);
+        return checkProcessor.verifyCheck(check, beGentle.get());
     }
 
     private void performCommands(final List<Command> commands) throws InterruptedException, Win32ApiException {
@@ -196,11 +228,6 @@ class RoutineScenarioProcessor implements Runnable {
     private void performCommand(final Command command) throws Win32ApiException, InterruptedException {
         logger.info("performing command: {}", command);
         commandProcessor.performCommand(command);
-    }
-
-    private void doRandomDelay() throws InterruptedException {
-        new Delay(1).randomSleep(0, 1, TimeUnit.MINUTES, duration -> logger.info("routine task delayed on {}", new DurationFormatter(duration).toStringWithoutZeroParts()));
-        logger.info("routine task continue execution");
     }
 
 }

@@ -7,11 +7,20 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.struct.PointInt;
 import midorum.win32.deputy.model.Scenario;
+import midorum.win32.deputy.model.Settings;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.JarURLConnection;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.*;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +41,14 @@ public final class CommonUtil {
         for (int i = 0; i < array.length; i++)
             if (Objects.equals(array[i], t)) return i;
         return -1;
+    }
+
+    public static String localTimeString(final long timestamp) {
+        return Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime().toString();
+    }
+
+    public static String utcTimeString(final long timestamp) {
+        return Instant.ofEpochMilli(timestamp).atZone(ZoneId.of("UTC")).toLocalDateTime().toString();
     }
 
     @SafeVarargs

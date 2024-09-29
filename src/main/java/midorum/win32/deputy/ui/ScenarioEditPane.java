@@ -99,6 +99,14 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         repaintActivities();
     }
 
+    private boolean canIgnoreActivity() {
+        if (activities.stream().filter(checkWrapperPane -> !checkWrapperPane.isIgnore()).findAny().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "You cannot ignore last activity from scenario");
+            return false;
+        }
+        return true;
+    }
+
     private void repaintActivities() {
         gridPane.removeAll();
         fillActivitiesGrid();
@@ -165,9 +173,11 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private final State state;
         private SupplierThrowing<Activity, IllegalInputException> activitySupplier;
+        private final JCheckBox ignoreCheckBox;
 
         private ActivityWrapperPane(final Activity activity, final State state) {
             this.state = state;
+            this.ignoreCheckBox = createIgnoreCheckBox(activity.isIgnore());
             setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
             fillActivityContainer(activity);
         }
@@ -176,16 +186,22 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             this(new Activity(), state);
         }
 
+        private boolean isIgnore() {
+            return ignoreCheckBox.isSelected();
+        }
+
         private void fillActivityContainer(final Activity activity, final boolean forEditing) {
             removeAll();
             if (!forEditing && activity.getTitle() != null) {
                 final ActivityViewPane activityViewPane = new ActivityViewPane(activity);
                 this.activitySupplier = activityViewPane;
-                SwingUtil.putComponentsToVerticalGrid(this, createActivityViewButtonsPane(), activityViewPane);
+                this.ignoreCheckBox.setEnabled(false);
+                SwingUtil.putComponentsToVerticalGrid(this, createActivityViewButtonsPane(ignoreCheckBox), activityViewPane);
             } else {
                 final ActivityEditPane activityEditPane = new ActivityEditPane(activity, state);
                 this.activitySupplier = activityEditPane;
-                SwingUtil.putComponentsToVerticalGrid(this, createActivityEditButtonsPane(), activityEditPane);
+                this.ignoreCheckBox.setEnabled(true);
+                SwingUtil.putComponentsToVerticalGrid(this, createActivityEditButtonsPane(ignoreCheckBox), activityEditPane);
             }
             revalidate();
         }
@@ -194,16 +210,17 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             fillActivityContainer(activity, false);
         }
 
-        private JPanel createActivityViewButtonsPane() {
+        private JPanel createActivityViewButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
             panel.add(new JLabel("Activity viewing"));
             panel.add(createEditActivityButton());
             panel.add(createAddButton());
+            if (components != null) for (final Component c : components) panel.add(c);
             return panel;
         }
 
-        private JPanel createActivityEditButtonsPane() {
+        private JPanel createActivityEditButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
             panel.add(new JLabel("Activity editing"));
@@ -213,6 +230,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             panel.add(createAddButton());
             panel.add(createAddCopyButton());
             panel.add(createDeleteButton());
+            if (components != null) for (final Component c : components) panel.add(c);
             return panel;
         }
 
@@ -288,9 +306,29 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             return btn;
         }
 
+        private JCheckBox createIgnoreCheckBox(final boolean ignore) {
+            final JCheckBox checkBox;
+            checkBox = new JCheckBox("ignore");
+            checkBox.setSelected(ignore);
+            checkBox.addActionListener(e -> {
+                if(checkBox.isSelected() && !canIgnoreActivity()) {
+                    checkBox.setSelected(false);
+                }
+            });
+            return checkBox;
+        }
+
         @Override
         public Activity get() throws IllegalInputException {
-            return activitySupplier.get();
+            final Activity activity = activitySupplier.get();
+            return new Activity(activity.getTitle(),
+                    activity.getDescription().orElse(null),
+                    activity.getChecks(),
+                    activity.getCommands(),
+                    activity.getWaitingList().orElse(null),
+                    activity.isRepeatable(),
+                    activity.producesFragileState(),
+                    this.ignoreCheckBox.isSelected());
         }
 
     }

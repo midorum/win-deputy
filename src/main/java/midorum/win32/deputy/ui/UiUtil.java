@@ -29,6 +29,10 @@ class UiUtil {
         this.win32Adapter = win32Adapter;
     }
 
+    public Logger getLogger() {
+        return logger;
+    }
+
     public Win32Adapter getWin32Adapter() {
         return win32Adapter;
     }
