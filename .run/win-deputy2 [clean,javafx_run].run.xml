@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="win-deputy [clean,compile]" type="MavenRunConfiguration" factoryName="Maven" nameIsGenerated="true">
+  <configuration default="false" name="win-deputy2 [clean,javafx:run]" type="MavenRunConfiguration" factoryName="Maven">
     <MavenSettings>
       <option name="myGeneralSettings" />
       <option name="myRunnerSettings" />
@@ -12,11 +12,11 @@
           <option name="goals">
             <list>
               <option value="clean" />
-              <option value="compile" />
+              <option value="javafx:run" />
             </list>
           </option>
           <option name="multimoduleDir" />
-          <option name="pomFileName" />
+          <option name="pomFileName" value="pom.xml" />
           <option name="profilesMap">
             <map />
           </option>
@@ -24,7 +24,7 @@
             <list />
           </option>
           <option name="resolveToWorkspace" value="false" />
-          <option name="workingDirPath" value="$PROJECT_DIR$" />
+          <option name="workingDirPath" value="$PROJECT_DIR$/win-deputy2" />
         </MavenRunnerParameters>
       </option>
     </MavenSettings>

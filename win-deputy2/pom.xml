@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>midorum.win32</groupId>
+        <artifactId>win-deputy</artifactId>
+        <version>0.1.0</version>
+    </parent>
+
+    <artifactId>win-deputy2</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
+
+    <properties>
+        <project.organization.name>midorum</project.organization.name>
+        <project.description>A program that helps you perform routine in Windows</project.description>
+        <project.entryPoint>midorum.win32.deputy.Launcher</project.entryPoint>
+        <project.inceptionYear>2024</project.inceptionYear>
+        <project.product.version>0.1.0.0</project.product.version>
+        <jre.min.version>1.22.0</jre.min.version>
+        <maven.compiler.source>22</maven.compiler.source>
+        <maven.compiler.target>22</maven.compiler.target>
+        <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
+        <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
+        <dma-util.version>0.3.11++time-measurer-2.0</dma-util.version>
+        <midorum.Win32API.version>0.4.0</midorum.Win32API.version>
+        <log4j.version>2.20.0</log4j.version>
+        <jackson.version>2.17.2</jackson.version>
+        <launch4j.maven.plugin.version>2.5.1</launch4j.maven.plugin.version>
+        <javafx.version>22.0.1</javafx.version>
+        <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
+        <javafx.entryPoint>midorum.win32.deputy.ui.Main</javafx.entryPoint>
+    </properties>
+
+    <dependencies>
+        <!--util-->
+        <dependency>
+            <groupId>dma-util</groupId>
+            <artifactId>dma-util</artifactId>
+            <version>${dma-util.version}</version>
+        </dependency>
+        <!--win32 support-->
+        <dependency>
+            <groupId>com.midorum</groupId>
+            <artifactId>Win32API</artifactId>
+            <version>${midorum.Win32API.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <!--logging-->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <!--support sl4j logging in underlying libraries-->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <!--testing-->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>RELEASE</version>
+            <scope>test</scope>
+        </dependency>
+        <!--JSON serialization support-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!--Jackson Java 8 datatypes support (Optional, OptionalLong, OptionalDouble)-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!--Jackson constructor and factory method ("creator") parameters without having to use @JsonProperty annotation support-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-parameter-names</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!--Jackson Java 8 Date/time support-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <!--javafx support-->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <!--javafx fxml support-->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <!-- Validation -->
+        <!--        <dependency>-->
+        <!--            <groupId>am.ik.yavi</groupId>-->
+        <!--            <artifactId>yavi</artifactId>-->
+        <!--            <version>0.14.1</version>-->
+        <!--        </dependency>-->
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>${javafx.maven.plugin.version}</version>
+                <configuration>
+                    <mainClass>${javafx.entryPoint}</mainClass>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <!-- Build an executable fat JAR -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven.shade.plugin.version}</version>
+                <executions>
+                    <!-- Run shade goal on package phase -->
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <!-- add Main-Class to manifest file -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>${project.entryPoint}</Main-Class>
+                                        <Build-Time>${maven.build.timestamp}</Build-Time>
+                                    </manifestEntries>
+                                </transformer>
+                                <!-- exclude module-info from fat jar -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
+                                    <resource>module-info.*</resource>
+                                </transformer>
+                                <!-- Transformer for maven-shaded-plugin, that concatenates Log4j2Plugins.dat files in order to provide a workaround for LOG4J2-673 and LOG4J2-954 bugs. -->
+                                <!-- https://github.com/edwgiz/maven-shaded-log4j-transformer/tree/cadff48627d814f052161d73b753cd29aa8af047 -->
+                                <!-- https://issues.apache.org/jira/browse/LOG4J2-673 -->
+                                <!-- https://issues.apache.org/jira/browse/LOG4J2-954 -->
+                                <transformer
+                                        implementation="io.github.edwgiz.log4j.maven.plugins.shade.transformer.Log4j2PluginCacheFileTransformer">
+                                </transformer>
+                            </transformers>
+                            <!--suppress UnresolvedMavenProperty -->
+                            <finalName>
+                                ${project.artifactId}-${project.version}
+                            </finalName>
+                            <createDependencyReducedPom>
+                                false
+                            </createDependencyReducedPom>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.github.edwgiz</groupId>
+                        <artifactId>log4j-maven-shade-plugin-extensions</artifactId>
+                        <version>${log4j.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>${launch4j.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>l4j-gui</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>${project.build.directory}/${project.parent.artifactId}-${project.version}.exe</outfile>
+                            <jar>${project.build.directory}/${project.artifactId}-${project.version}.jar</jar>
+                            <errTitle>${project.parent.artifactId}</errTitle>
+                            <classPath>
+                                <mainClass>${project.entryPoint}</mainClass>
+                            </classPath>
+                            <singleInstance>
+                                <mutexName>${project.parent.artifactId}</mutexName>
+                                <windowTitle>${project.parent.artifactId}</windowTitle>
+                            </singleInstance>
+                            <jre>
+                                <minVersion>${jre.min.version}</minVersion>
+                                <opts>
+                                    <opt>-Dlog4j.configurationFile=log4j2.xml</opt>
+                                </opts>
+                            </jre>
+                            <icon>${project.basedir}/src/main/resources/icons/droid-robot.ico</icon>
+                            <versionInfo>
+                                <fileVersion>${project.product.version}</fileVersion>
+                                <txtFileVersion>${project.version}</txtFileVersion>
+                                <fileDescription>${project.description}</fileDescription>
+                                <!--                                <copyright>my copyright</copyright>-->
+                                <productVersion>${project.product.version}</productVersion>
+                                <txtProductVersion>${project.version}</txtProductVersion>
+                                <productName>${project.parent.artifactId}</productName>
+                                <internalName>${project.parent.artifactId}</internalName>
+                                <!--                                <originalFilename>original.exe</originalFilename>-->
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
