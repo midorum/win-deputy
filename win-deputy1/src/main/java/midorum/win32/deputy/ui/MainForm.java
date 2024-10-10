@@ -2,7 +2,6 @@ package midorum.win32.deputy.ui;
 
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.Either;
-import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.TaskDispatcher;
@@ -33,7 +32,7 @@ public class MainForm implements TaskDispatcher {
         this.frame = new JFrame("Win Deputy v" + appVersion);
 
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.uiUtil = new UiUtil(frame, new Win32Adapter(new UserActivityObserver()));
+        this.uiUtil = new UiUtil(frame, new Win32Adapter());
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         this.frame.setPreferredSize(new Dimension(700, screenSize.height));
         this.state = State.loadState(uiUtil).getOrHandleError(e -> {
@@ -56,10 +55,6 @@ public class MainForm implements TaskDispatcher {
         logger.info("display mode: {}", GraphicsEnvironment.getLocalGraphicsEnvironment()
                 .getDefaultScreenDevice().getDisplayMode());
         logger.info("--------------------------------------------------------");
-
-        logger.info(" name {}", getClass().getName());
-        logger.info(" simple name {}", getClass().getSimpleName());
-        logger.info(" canonical name {}", getClass().getCanonicalName());
     }
 
     private void setIcon() {

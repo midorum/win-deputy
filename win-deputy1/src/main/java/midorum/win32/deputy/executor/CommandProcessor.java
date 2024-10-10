@@ -5,6 +5,7 @@ import com.midorum.win32api.facade.exception.Win32ApiException;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.*;
@@ -20,11 +21,11 @@ public class CommandProcessor {
 
     private final Win32Cache cache;
     private final UserActivityObserver userActivityObserver;
-    private final Win32Adapter win32Adapter;
+    private final GuardedWin32Adapter win32Adapter;
 
     public CommandProcessor(final Win32Cache cache,
                             final UserActivityObserver userActivityObserver,
-                            final Win32Adapter win32Adapter) {
+                            final GuardedWin32Adapter win32Adapter) {
         this.cache = cache;
         this.userActivityObserver = userActivityObserver;
         this.win32Adapter = win32Adapter;

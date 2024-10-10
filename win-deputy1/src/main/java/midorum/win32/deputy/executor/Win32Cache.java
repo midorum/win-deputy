@@ -6,6 +6,7 @@ import com.midorum.win32api.facade.Rectangle;
 import com.midorum.win32api.facade.exception.Win32ApiException;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.FileServiceProvider;
+import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.IExecutor;
 import midorum.win32.deputy.model.Settings;
@@ -25,14 +26,14 @@ public class Win32Cache {
 
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final File workingDirectory;
-    private final Win32Adapter win32Adapter;
+    private final GuardedWin32Adapter win32Adapter;
     private final Settings settings;
 
     private final ConcurrentHashMap<String, Optional<IProcess>> processCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Optional<IWindow>> windowCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Optional<Stamp>> stampCache = new ConcurrentHashMap<>();
 
-    public Win32Cache(final File workingDirectory, final Win32Adapter win32Adapter, final Settings settings) {
+    public Win32Cache(final File workingDirectory, final GuardedWin32Adapter win32Adapter, final Settings settings) {
         this.workingDirectory = workingDirectory;
         this.win32Adapter = win32Adapter;
         this.settings = settings;

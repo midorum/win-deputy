@@ -4,11 +4,14 @@ import com.midorum.win32api.hook.GlobalKeyHook;
 import com.midorum.win32api.hook.KeyHookHelper;
 import com.midorum.win32api.win32.Win32VirtualKey;
 import dma.validation.Validator;
+import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.executor.ExecutorImpl;
 import midorum.win32.deputy.model.*;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import javax.swing.*;
 import java.awt.*;
@@ -38,12 +41,12 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     ScenarioViewerForm(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = Validator.checkNotNull(taskDispatcher).orThrowForSymbol("taskDispatcher");
         this.state = new State(uiUtil);
-        this.userActivityObserver = new UserActivityObserver();
+        this.userActivityObserver = UserActivityObserver.getInstance();
         final Settings settings = Settings.loadFromFile().getOrHandleError(e -> {
             uiUtil.logThrowable("cannot load settings from file", e);
             return Settings.defaultSettings();
         });
-        this.executor = new ExecutorImpl(userActivityObserver, uiUtil.getWin32Adapter(), settings);
+        this.executor = new ExecutorImpl(userActivityObserver, new GuardedWin32Adapter(userActivityObserver), settings);
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
         this.scenarioDescriptionLabel = new JLabel();

@@ -11,13 +11,18 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class UserActivityObserver {
 
+    private final static UserActivityObserver INSTANCE = new UserActivityObserver();
     private final Logger logger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final ConcurrentLinkedQueue<Integer> queue;
     private final AtomicLong lastUserKeyEventTime;
 
-    public UserActivityObserver() {
+    private UserActivityObserver() {
         queue = new ConcurrentLinkedQueue<>();
         lastUserKeyEventTime = new AtomicLong();
+    }
+
+    public static UserActivityObserver getInstance() {
+        return INSTANCE;
     }
 
     public void checkKeyEvent(final GlobalKeyHook.KeyEvent event) {

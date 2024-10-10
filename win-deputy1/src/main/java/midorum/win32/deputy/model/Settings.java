@@ -13,7 +13,9 @@ public record Settings(
         int initialDelay,
         int delay,
         int userActivityDelay,
-        boolean listAllWindowsWhenSearchFail
+        boolean listAllWindowsWhenSearchFail,
+        LogLevel rootLogLevel,
+        LogLevel libLogLevel
 ) {
 
     private static final String SETTINGS_FILE_NAME = "settings";
@@ -23,6 +25,8 @@ public record Settings(
     private static final String DELAY_PROPERTY_NAME = "delay";
     private static final String USER_ACTIVITY_DELAY_PROPERTY_NAME = "userActivityDelay";
     private static final String LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL_PROPERTY_NAME = "search.window.listAllWhenFail";
+    private static final String ROOT_LOG_LEVEL_PROPERTY_NAME = "log.root.level";
+    private static final String LIB_LOG_LEVEL_PROPERTY_NAME = "log.lib.level";
 
     public static Settings defaultSettings() {
         return new Settings(
@@ -31,7 +35,9 @@ public record Settings(
                 5,
                 1,
                 15,
-                false
+                false,
+                LogLevel.INFO,
+                LogLevel.INFO
         );
     }
 
@@ -45,7 +51,9 @@ public record Settings(
                     Integer.parseInt(appProps.getProperty(INITIAL_DELAY_PROPERTY_NAME, "5")),
                     Integer.parseInt(appProps.getProperty(DELAY_PROPERTY_NAME, "1")),
                     Integer.parseInt(appProps.getProperty(USER_ACTIVITY_DELAY_PROPERTY_NAME, "15")),
-                    Boolean.parseBoolean(appProps.getProperty(LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL_PROPERTY_NAME, "false"))
+                    Boolean.parseBoolean(appProps.getProperty(LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL_PROPERTY_NAME, "false")),
+                    LogLevel.valueOf(appProps.getProperty(ROOT_LOG_LEVEL_PROPERTY_NAME, LogLevel.INFO.name())),
+                    LogLevel.valueOf(appProps.getProperty(LIB_LOG_LEVEL_PROPERTY_NAME, LogLevel.INFO.name()))
             );
         })).orException();
     }
@@ -59,6 +67,8 @@ public record Settings(
             appProps.setProperty(DELAY_PROPERTY_NAME, Integer.toString(delay()));
             appProps.setProperty(USER_ACTIVITY_DELAY_PROPERTY_NAME, Integer.toString(userActivityDelay()));
             appProps.setProperty(LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL_PROPERTY_NAME, Boolean.toString(listAllWindowsWhenSearchFail()));
+            appProps.setProperty(ROOT_LOG_LEVEL_PROPERTY_NAME, rootLogLevel.name());
+            appProps.setProperty(LIB_LOG_LEVEL_PROPERTY_NAME, libLogLevel.name());
             appProps.store(outputStream, null);
         });
     }

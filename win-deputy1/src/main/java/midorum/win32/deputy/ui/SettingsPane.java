@@ -1,11 +1,15 @@
 package midorum.win32.deputy.ui;
 
+import midorum.win32.deputy.model.LogLevel;
 import midorum.win32.deputy.model.Settings;
 import midorum.win32.deputy.model.TaskDispatcher;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Objects;
 
 class SettingsPane extends JPanel {
 
@@ -18,6 +22,8 @@ class SettingsPane extends JPanel {
     private IntegerTextField delayTextField;
     private IntegerTextField userActivityDelayTextField;
     private JComboBox<String> listAllWindowsWhenSearchFailComboBox;
+    private JComboBox<LogLevel> rootLogLevelComboBox;
+    private JComboBox<LogLevel> libLogLevelComboBox;
 
     SettingsPane(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = taskDispatcher;
@@ -41,7 +47,9 @@ class SettingsPane extends JPanel {
                 createInitialDelayPane(settings.initialDelay()),
                 createDelayPane(settings.delay()),
                 createUserActivityDelayPane(settings.userActivityDelay()),
-                createListAllWindowsWhenSearchFailPane(settings.listAllWindowsWhenSearchFail())
+                createListAllWindowsWhenSearchFailPane(settings.listAllWindowsWhenSearchFail()),
+                createRootLogLevelPane(settings.rootLogLevel()),
+                createLibLogLevelPane(settings.libLogLevel())
         );
         return panel;
     }
@@ -107,6 +115,36 @@ class SettingsPane extends JPanel {
         return panel;
     }
 
+    private JPanel createRootLogLevelPane(final LogLevel logLevel) {
+        final JPanel panel = new JPanel();
+        rootLogLevelComboBox = new JComboBox<>(LogLevel.values());
+        rootLogLevelComboBox.setSelectedItem(logLevel);
+        rootLogLevelComboBox.addActionListener(_ -> {
+            final LogLevel selected = (LogLevel) rootLogLevelComboBox.getSelectedItem();
+            if (selected != null) LogLevel.setRootLevel(selected);
+        });
+        SwingUtil.putComponentsToHorizontalGrid(panel, 1,
+                new JLabel("Root log level:"),
+                rootLogLevelComboBox
+        );
+        return panel;
+    }
+
+    private JPanel createLibLogLevelPane(final LogLevel logLevel) {
+        final JPanel panel = new JPanel();
+        libLogLevelComboBox = new JComboBox<>(LogLevel.values());
+        libLogLevelComboBox.setSelectedItem(logLevel);
+        libLogLevelComboBox.addActionListener(_ -> {
+            final LogLevel selected = (LogLevel) libLogLevelComboBox.getSelectedItem();
+            if (selected != null) LogLevel.setLibLevel(selected);
+        });
+        SwingUtil.putComponentsToHorizontalGrid(panel, 1,
+                new JLabel("Lib log level:"),
+                libLogLevelComboBox
+        );
+        return panel;
+    }
+
     private JPanel createButtonPane() {
         final JPanel buttonPane = new JPanel();
         buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
@@ -119,7 +157,7 @@ class SettingsPane extends JPanel {
 
     private Button createSaveButton() {
         final Button btn = new Button("Save changes");
-        btn.addActionListener(e -> {
+        btn.addActionListener(_ -> {
             try {
                 new Settings(
                         Integer.parseInt(stampDeviationTextField.getText()),
@@ -127,7 +165,9 @@ class SettingsPane extends JPanel {
                         Integer.parseInt(initialDelayTextField.getText()),
                         Integer.parseInt(delayTextField.getText()),
                         Integer.parseInt(userActivityDelayTextField.getText()),
-                        Boolean.parseBoolean((String) listAllWindowsWhenSearchFailComboBox.getSelectedItem())
+                        Boolean.parseBoolean((String) listAllWindowsWhenSearchFailComboBox.getSelectedItem()),
+                        LogLevel.valueOf(((LogLevel) Objects.requireNonNull(rootLogLevelComboBox.getSelectedItem())).name()),
+                        LogLevel.valueOf(((LogLevel) Objects.requireNonNull(libLogLevelComboBox.getSelectedItem())).name())
                 ).storeToFile();
             } catch (IOException ex) {
                 uiUtil.reportThrowable("Cannot store settings to a file", ex);

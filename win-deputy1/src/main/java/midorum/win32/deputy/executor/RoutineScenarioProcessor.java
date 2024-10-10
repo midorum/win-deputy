@@ -4,10 +4,7 @@ import com.midorum.win32api.facade.exception.Win32ApiException;
 import dma.util.Delay;
 import dma.util.DurationFormatter;
 import dma.validation.Validator;
-import midorum.win32.deputy.common.CommonUtil;
-import midorum.win32.deputy.common.DefaultSettings;
-import midorum.win32.deputy.common.UserActivityObserver;
-import midorum.win32.deputy.common.Win32Adapter;
+import midorum.win32.deputy.common.*;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +24,7 @@ class RoutineScenarioProcessor implements Runnable {
     private final File workingDirectory;
     private final Scenario scenario;
     private final UserActivityObserver userActivityObserver;
-    private final Win32Adapter win32Adapter;
+    private final GuardedWin32Adapter win32Adapter;
     private final Settings settings;
     private final Win32Cache cache;
     private final CheckProcessor checkProcessor;
@@ -42,7 +39,8 @@ class RoutineScenarioProcessor implements Runnable {
     RoutineScenarioProcessor(final File workingDirectory,
                              final Scenario scenario,
                              final UserActivityObserver userActivityObserver,
-                             final Win32Adapter win32Adapter, final Settings settings) {
+                             final GuardedWin32Adapter win32Adapter,
+                             final Settings settings) {
         this.workingDirectory = Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory");
         this.scenario = Validator.checkNotNull(scenario).orThrowForSymbol("scenario");
         this.userActivityObserver = Validator.checkNotNull(userActivityObserver).orThrowForSymbol("userActivityObserver");
