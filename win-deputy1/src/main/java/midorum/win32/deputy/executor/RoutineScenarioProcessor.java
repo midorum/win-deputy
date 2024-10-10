@@ -44,8 +44,8 @@ class RoutineScenarioProcessor implements Runnable {
         this.workingDirectory = Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory");
         this.scenario = Validator.checkNotNull(scenario).orThrowForSymbol("scenario");
         this.userActivityObserver = Validator.checkNotNull(userActivityObserver).orThrowForSymbol("userActivityObserver");
-        this.win32Adapter = win32Adapter;
-        this.settings = settings;
+        this.win32Adapter = Validator.checkNotNull(win32Adapter).orThrowForSymbol("win32Adapter");
+        this.settings = Validator.checkNotNull(settings).orThrowForSymbol("settings");
         this.cache = new Win32Cache(workingDirectory, win32Adapter, settings);
         this.checkProcessor = new CheckProcessor(cache);
         this.commandProcessor = new CommandProcessor(cache, userActivityObserver, win32Adapter);
@@ -55,25 +55,30 @@ class RoutineScenarioProcessor implements Runnable {
     public void run() {
         try {
             logger.info("routine task started {}", beGentle.get() ? "(gentle mode)" : "");
-            final long l = lastUserKeyEventTime.get();
-            if (l > 0) {
+            final long lastUserActivityTime = lastUserKeyEventTime.get();
+            if (lastUserActivityTime > 0) {
                 cache.invalidate();
                 userActivityObserver.reset();
                 repeatableIndex.set(-1);
                 repeatableCounter.set(0);
                 lastUserKeyEventTime.set(0);
                 logger.info("scenario executing paused cause of user activity ({}) due to {}",
-                        l,
+                        lastUserActivityTime,
                         CommonUtil.localTimeString(System.currentTimeMillis()
                                 + TimeUnit.MILLISECONDS.convert(settings.userActivityDelay(), TimeUnit.SECONDS)));
                 TimeUnit.SECONDS.sleep(settings.userActivityDelay());
             }
             if (userActivityObserver.wasUserActivity()) throw new UserActionDetectedException();
             final WaitingList setWaitingList = waitingList.get();
-            if (!verifyWaitingList(setWaitingList) && System.currentTimeMillis() < waitUntil.longValue()) {
+            final boolean waitingTimeIsOut = System.currentTimeMillis() > waitUntil.longValue();
+            if (!verifyWaitingList(setWaitingList) && !waitingTimeIsOut) {
                 logger.info("waiting list has not passed checks and waiting time does not expired - interrupt routine task");
                 cache.invalidate();
                 return;
+            } else if (waitingTimeIsOut) {
+                makeShot("waiting has done by timeout - continue performing activities");
+                waitingList.set(null);
+                waitUntil.set(0);
             } else if (setWaitingList != null) {
                 logger.info("waiting has done - continue performing activities");
                 waitingList.set(null);
@@ -169,12 +174,16 @@ class RoutineScenarioProcessor implements Runnable {
     }
 
     private UserMessageException makeShotAndGetException(final String message) {
+        makeShot(message);
+        return new UserMessageException(message);
+    }
+
+    private void makeShot(final String message) {
         final String fileNameForWrongShot = CommonUtil.getFileNameForWrongShot();
         logger.warn("{} ({})", message, fileNameForWrongShot);
         CommonUtil.saveImage(win32Adapter.takeScreenShot(),
                 CommonUtil.getPathForWrongShots(workingDirectory),
                 fileNameForWrongShot);
-        return new UserMessageException(message);
     }
 
     private boolean verifyWaitingList(final WaitingList waitingList) throws InterruptedException {

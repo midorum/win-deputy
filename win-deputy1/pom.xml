@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>win-deputy1</artifactId>
-    <version>0.1.1-dynamic_log_level_3</version>
+    <version>0.1.1-rc_1</version>
 
     <properties>
         <project.organization.name>midorum</project.organization.name>
