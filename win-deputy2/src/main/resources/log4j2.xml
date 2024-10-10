@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration monitorInterval="30" status="WARN" >
+    <Properties>
+        <Property name="threadFormat">
+            [%-15t]
+        </Property>
+        <Property name="loggerFormat">
+            %-15logger{1}
+        </Property>
+        <Property name="filters">
+            sun,
+            java,
+            javax,
+            jdk,
+            groovy,
+            org.apache,
+            org.junit,
+            org.springframework,
+            springfox,
+            com.sun,
+            com.google,
+            org.postgresql,
+            org.mybatis,
+            org.codehaus
+        </Property>
+        <Property name="pattern_omit_stack">
+            %d{yy-MM-dd HH:mm:ss.SSS} ${threadFormat} %-5level ${loggerFormat} - %msg%xEx{filters(${filters})}%n
+        </Property>
+        <Property name="basic_pattern" value="%d{yy-MM-dd HH:mm:ss.SSS} ${threadFormat} %-5level ${loggerFormat} - %msg %xEx{full, filters(org.junit)} %n"/>
+    </Properties>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${pattern_omit_stack}"/>
+        </Console>
+        
+        <RollingFile name="MainLog"
+                     fileName="logs/main.log"
+                     filePattern="logs/main-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${pattern_omit_stack}"/>
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+        </RollingFile>
+
+        <RollingFile name="DebugLog"
+                     fileName="logs/debug.log"
+                     filePattern="logs/debug-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${pattern_omit_stack}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+        </RollingFile>
+
+        <RollingFile name="StampLog"
+                     fileName="logs/stamp.log"
+                     filePattern="logs/stamp-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${pattern_omit_stack}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+        </RollingFile>
+
+        <RollingFile name="TraceLog"
+                     fileName="logs/trace.log"
+                     filePattern="logs/trace-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${pattern_omit_stack}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="com.midorum.win32api" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="MainLog"/>
+            <AppenderRef ref="DebugLog"/>
+        </Logger>
+
+        <Logger name="stamp_logger" level="debug" additivity="false">
+            <AppenderRef ref="StampLog"/>
+        </Logger>
+
+        <Logger name="trace" level="trace" additivity="false">
+<!--            <AppenderRef ref="Console"/>-->
+            <AppenderRef ref="TraceLog"/>
+        </Logger>
+
+        <Root level="debug">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="MainLog"/>
+            <AppenderRef ref="DebugLog"/>
+<!--            <AppenderRef ref="TraceLog"/>-->
+        </Root>
+    </Loggers>
+</Configuration>
