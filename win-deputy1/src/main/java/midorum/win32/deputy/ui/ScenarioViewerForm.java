@@ -8,37 +8,38 @@ import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.executor.ExecutorImpl;
 import midorum.win32.deputy.model.*;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.Configurator;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ScenarioViewerForm extends JPanel implements Displayable {
 
-    private final Logger executorLogger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private static final int PANE_MARGIN = 10;
+    private final Logger executorLogger = LogManager.getLogger(IExecutor.LOGGER_NAME);
     private final TaskDispatcher taskDispatcher;
     private final State state;
-    private final JLabel scenarioPathLabel;
-    private Button editScenarioButton;
-    private Button runScenarioButton;
-    private Button stopScenarioButton;
-    private final JLabel scenarioTitleLabel;
-    private final JLabel scenarioDescriptionLabel;
-    private Scenario scenario;
     private final ExecutorImpl executor;
-    private Button loadScenarioButton;
-    private Button createScenarioButton;
     private final AtomicReference<GlobalKeyHook> cancelKeyHook = new AtomicReference<>();
     private final UserActivityObserver userActivityObserver;
-    private Button showSettingsButton;
+    private final JLabel scenarioPathLabel;
+    private final JLabel scenarioTitleLabel;
+    private final JLabel scenarioDescriptionLabel;
+    private final Button editScenarioButton;
+    private final Button runScenarioButton;
+    private final Button stopScenarioButton;
+    private final Button loadScenarioButtonCentral;
+    private final Button loadScenarioButtonBottom;
+    private final Button createScenarioButton;
+    private final Button showSettingsButton;
+    private Scenario scenario;
 
-    ScenarioViewerForm(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
+    ScenarioViewerForm(final TaskDispatcher taskDispatcher,
+                       final UiUtil uiUtil) {
         this.taskDispatcher = Validator.checkNotNull(taskDispatcher).orThrowForSymbol("taskDispatcher");
         this.state = new State(uiUtil);
         this.userActivityObserver = UserActivityObserver.getInstance();
@@ -50,29 +51,82 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
         this.scenarioDescriptionLabel = new JLabel();
+        this.loadScenarioButtonCentral = createLoadScenarioButton();
+        this.loadScenarioButtonBottom = createLoadScenarioButton();
+        this.createScenarioButton = createCreateScenarioButton();
+        this.editScenarioButton = createEditScenarioButton();
+        this.runScenarioButton = createRunScenarioButton();
+        this.stopScenarioButton = createStopScenarioButton();
+        this.showSettingsButton = createShowSettingsButton();
         SwingUtil.putComponentsToVerticalGrid(this,
-                3,
-                scenarioPathLabel,
-                scenarioTitleLabel,
-                scenarioDescriptionLabel,
-                new JPanel(),
+                0,
+                createCentralPane(),
                 createButtonPane());
-        scenarioPathLabel.setText("New scenario");
+        scenarioPathLabel.setText("Please choose scenario file or create a new one");
         editScenarioButton.setEnabled(false);
         runScenarioButton.setEnabled(false);
         stopScenarioButton.setEnabled(false);
+        showCentralButton(false);
     }
 
-    ScenarioViewerForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile, final UiUtil uiUtil) {
+    ScenarioViewerForm(final TaskDispatcher taskDispatcher,
+                       final Scenario scenario,
+                       final File scenarioFile,
+                       final UiUtil uiUtil) {
         this(taskDispatcher, uiUtil);
         this.scenario = scenario;
         state.setWorkingDirectory(scenarioFile.getParentFile());
         state.setScenarioName(scenarioFile.getName());
         scenarioPathLabel.setText(scenarioFile.getAbsolutePath());
         scenarioTitleLabel.setText(scenario.getTitle());
-        scenario.getDescription().ifPresent(scenarioDescriptionLabel::setText);
+        scenario.getDescription().ifPresent(text -> scenarioDescriptionLabel.setText("<html><p>"+text+"</p></html>")); // word wrap hack
         editScenarioButton.setEnabled(true);
         runScenarioButton.setEnabled(true);
+        showCentralButton(false);
+    }
+
+    private JPanel createCentralPane() {
+        final Font font = scenarioTitleLabel.getFont();
+        final Font enlargedFont = new Font(font.getName(), Font.BOLD, 30);
+        final Font middleFont = new Font(font.getName(), Font.PLAIN, 18);
+        final JLabel currentScenarioLabel = new JLabel("Current scenario");
+        currentScenarioLabel.setFont(middleFont);
+        currentScenarioLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        scenarioTitleLabel.setFont(enlargedFont);
+        scenarioTitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        scenarioDescriptionLabel.setFont(middleFont);
+        scenarioDescriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        scenarioPathLabel.setFont(middleFont);
+        scenarioPathLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        runScenarioButton.setForeground(Color.GREEN);
+        stopScenarioButton.setForeground(Color.RED);
+        final JPanel panel = new JPanel();
+        panel.setFont(enlargedFont); // for panel buttons
+        panel.setLayout(new GridBagLayout());
+        final GridBagConstraints c = new GridBagConstraints();
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 0.5;
+        c.gridy = 0;
+        c.weighty = 0.3;
+        panel.add(new JPanel(), c); // stub
+        c.gridy++;
+        c.weighty = 0.0;
+        panel.add(currentScenarioLabel, c);
+        c.gridy++;
+        panel.add(scenarioTitleLabel, c);
+        c.gridy++;
+        panel.add(scenarioDescriptionLabel, c);
+        c.gridy++;
+        panel.add(scenarioPathLabel, c);
+        c.fill = GridBagConstraints.NONE;
+        c.gridy++;
+        c.weighty = 0.5;
+        panel.add(loadScenarioButtonCentral, c);
+        c.gridy++;
+        panel.add(runScenarioButton, c);
+        c.gridy++;
+        panel.add(stopScenarioButton, c);
+        return panel;
     }
 
     private JPanel createButtonPane() {
@@ -80,44 +134,37 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
         buttonPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
         buttonPane.add(Box.createHorizontalGlue());
-        loadScenarioButton = createLoadScenarioButton();
-        buttonPane.add(loadScenarioButton);
-        createScenarioButton = createCreateScenarioButton();
+        buttonPane.add(loadScenarioButtonBottom);
         buttonPane.add(createScenarioButton);
-        editScenarioButton = createEditScenarioButton();
         buttonPane.add(editScenarioButton);
-        runScenarioButton = createRunScenarioButton();
-        buttonPane.add(runScenarioButton);
-        stopScenarioButton = createStopScenarioButton();
-        buttonPane.add(stopScenarioButton);
-        showSettingsButton = createShowSettingsButton();
         buttonPane.add(showSettingsButton);
+        buttonPane.add(openLogsButton());
         buttonPane.add(createShowCreditsButton());
         return buttonPane;
     }
 
     private Button createLoadScenarioButton() {
         final Button btn = new Button("Load scenario");
-        btn.addActionListener(e -> taskDispatcher.loadScenario());
+        btn.addActionListener(_ -> taskDispatcher.loadScenario());
         return btn;
     }
 
     private Button createEditScenarioButton() {
         final Button btn = new Button("Edit scenario");
-        btn.addActionListener(e -> taskDispatcher.editScenario(new File(state.getWorkingDirectory(),
+        btn.addActionListener(_ -> taskDispatcher.editScenario(new File(state.getWorkingDirectory(),
                 state.getScenarioName()).getAbsolutePath()));
         return btn;
     }
 
     private Button createCreateScenarioButton() {
         final Button btn = new Button("Create scenario");
-        btn.addActionListener(e -> taskDispatcher.createNewScenario());
+        btn.addActionListener(_ -> taskDispatcher.createNewScenario());
         return btn;
     }
 
     private Button createRunScenarioButton() {
         final Button btn = new Button("Run scenario");
-        btn.addActionListener(e -> {
+        btn.addActionListener(_ -> {
             if (scenario != null) {
                 lockForm();
                 final GlobalKeyHook oldHook = cancelKeyHook.getAndSet(setCancelTaskHook());
@@ -139,7 +186,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
 
     private Button createStopScenarioButton() {
         final Button btn = new Button("Stop scenario");
-        btn.addActionListener(e -> {
+        btn.addActionListener(_ -> {
             executor.cancelCurrentTask();
             final GlobalKeyHook cancelKeyHook = this.cancelKeyHook.get();
             if (cancelKeyHook != null) {
@@ -152,32 +199,55 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
 
     private Button createShowSettingsButton() {
         final Button btn = new Button("Settings");
-        btn.addActionListener(e -> taskDispatcher.showSettings());
+        btn.addActionListener(_ -> taskDispatcher.showSettings());
+        return btn;
+    }
+
+    private Button openLogsButton() {
+        final Button btn = new Button("Logs");
+        btn.addActionListener(_ -> {
+            try {
+                Desktop.getDesktop().open(new File("logs"));
+            } catch (IOException ex) {
+                state.getUtilities().reportThrowable("Cannot open logs location", ex);
+            }
+        });
         return btn;
     }
 
     private Button createShowCreditsButton() {
         final Button btn = new Button("Credits");
-        btn.addActionListener(e -> taskDispatcher.showCredits());
+        btn.addActionListener(_ -> taskDispatcher.showCredits());
         return btn;
     }
 
+    private void showCentralButton(boolean isRunning) {
+        loadScenarioButtonCentral.setVisible(this.scenario == null);
+        runScenarioButton.setVisible(this.scenario != null && !isRunning);
+        stopScenarioButton.setVisible(this.scenario != null && isRunning);
+        revalidate();
+    }
+
     private void lockForm() {
-        loadScenarioButton.setEnabled(false);
+        loadScenarioButtonCentral.setEnabled(false);
+        loadScenarioButtonBottom.setEnabled(false);
         editScenarioButton.setEnabled(false);
         createScenarioButton.setEnabled(false);
         runScenarioButton.setEnabled(false);
         stopScenarioButton.setEnabled(true);
         showSettingsButton.setEnabled(false);
+        showCentralButton(true);
     }
 
     private void unlockForm() {
-        loadScenarioButton.setEnabled(true);
+        loadScenarioButtonCentral.setEnabled(true);
+        loadScenarioButtonBottom.setEnabled(true);
         editScenarioButton.setEnabled(true);
         createScenarioButton.setEnabled(true);
         runScenarioButton.setEnabled(true);
         stopScenarioButton.setEnabled(false);
         showSettingsButton.setEnabled(true);
+        showCentralButton(false);
     }
 
     private GlobalKeyHook setCancelTaskHook() {

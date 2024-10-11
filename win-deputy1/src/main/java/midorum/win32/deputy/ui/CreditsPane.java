@@ -44,21 +44,8 @@ class CreditsPane extends JPanel {
         buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
         buttonPane.setBorder(BorderFactory.createEmptyBorder(0, PANE_MARGIN, PANE_MARGIN, PANE_MARGIN));
         buttonPane.add(Box.createHorizontalGlue());
-        buttonPane.add(createOpenLogsButton());
         buttonPane.add(createCloseButton());
         return buttonPane;
-    }
-
-    private Button createOpenLogsButton() {
-        final Button btn = new Button("Logs");
-        btn.addActionListener(e -> {
-            try {
-                Desktop.getDesktop().open(new File("logs"));
-            } catch (IOException ex) {
-                uiUtil.reportThrowable("Cannot open logs location", ex);
-            }
-        });
-        return btn;
     }
 
     private Button createCloseButton() {
