@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.Check;
 import midorum.win32.deputy.model.CheckDataType;
 import midorum.win32.deputy.model.CheckType;
@@ -71,7 +72,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
 
     private void deleteData(final CheckDataTypePane checkDataTypePane) {
         if (checkDataList.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last check data");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastCheckData.forUserLocale());
             return;
         }
         checkDataList.remove(checkDataTypePane);
@@ -110,7 +111,7 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
         final CheckType checkType = (CheckType) checkTypeComboBox.getSelectedItem();
         if (!Check.validateCheckType(checkType)) {
             checkTypeComboBox.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal check type");
+            throw new IllegalInputException(UiElement.illegalCheckType);
         }
         checkTypeComboBox.setBorder(null);
         return checkType;
@@ -123,14 +124,14 @@ class CheckEditPane extends JPanel implements SupplierThrowing<Check, IllegalInp
             final String checkDataValue = next.getCheckDataValue();
             if (!Check.validateCheckDataEntry(checkDataType, checkDataValue)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal check data");
+                throw new IllegalInputException(UiElement.illegalCheckData);
             }
             next.setBorder(null);
             data.put(checkDataType, checkDataValue);
         }
         if (!Check.validateCheckData(checkType, data)) {
             checkDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal check data");
+            throw new IllegalInputException(UiElement.illegalCheckData);
         }
         checkDataPane.setBorder(null);
         return data;

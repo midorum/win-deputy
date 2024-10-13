@@ -2,6 +2,7 @@ package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.IllegalInputException;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.Displayable;
@@ -36,7 +37,7 @@ class ScenarioEditorForm extends JPanel implements Displayable {
 
     ScenarioEditorForm(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this(taskDispatcher, null, uiUtil);
-        scenarioPathLabel.setText("New scenario");
+        scenarioPathLabel.setText(UiElement.newScenarioLabel.forUserLocale());
     }
 
     ScenarioEditorForm(final TaskDispatcher taskDispatcher, final Scenario scenario, final File scenarioFile, final UiUtil uiUtil) {
@@ -59,45 +60,45 @@ class ScenarioEditorForm extends JPanel implements Displayable {
     }
 
     private Button createCancelButton() {
-        final Button btn = new Button("Cancel");
-        btn.addActionListener(e -> taskDispatcher.cancelScenarioEditing());
+        final Button btn = new Button(UiElement.cancelButtonText.forUserLocale());
+        btn.addActionListener(_ -> taskDispatcher.cancelScenarioEditing());
         return btn;
     }
 
     private Button createSaveButton() {
-        final Button btn = new Button("Save");
-        btn.addActionListener(e -> {
+        final Button btn = new Button(UiElement.saveButtonText.forUserLocale());
+        btn.addActionListener(_ -> {
             try {
                 collectScenarioAndSave(false);
             } catch (IllegalInputException ex) {
-                state.getUtilities().reportThrowable(ex.getMessage(), ex);
+                state.getUtilities().reportThrowable(ex, ex.getUiElement(), ex.getArgs());
             }
         });
         return btn;
     }
 
     private Button createSaveAsButton() {
-        final Button btn = new Button("Save As");
-        btn.addActionListener(e -> {
+        final Button btn = new Button(UiElement.saveAsButtonText.forUserLocale());
+        btn.addActionListener(_ -> {
             try {
                 collectScenarioAndSave(true);
             } catch (IllegalInputException ex) {
-                state.getUtilities().reportThrowable(ex.getMessage(), ex);
+                state.getUtilities().reportThrowable(ex, ex.getUiElement(), ex.getArgs());
             }
         });
         return btn;
     }
 
     private Button createSaveAndCloseButton() {
-        final Button btn = new Button("Save and close");
-        btn.addActionListener(e -> {
+        final Button btn = new Button(UiElement.saveAndCloseButtonText.forUserLocale());
+        btn.addActionListener(_ -> {
             try {
                 collectScenarioAndSave(false);
                 if (state.getWorkingDirectory() != null && state.getScenarioName() != null) {
                     taskDispatcher.endScenarioEditing(new File(state.getWorkingDirectory(), state.getScenarioName()).getAbsolutePath());
                 }
             } catch (IllegalInputException ex) {
-                state.getUtilities().reportThrowable(ex.getMessage(), ex);
+                state.getUtilities().reportThrowable(ex, ex.getUiElement(), ex.getArgs());
             }
         });
         return btn;
@@ -118,9 +119,10 @@ class ScenarioEditorForm extends JPanel implements Displayable {
                             final String scenarioFilePath = f.getAbsolutePath();
                             state.setScenarioName(f.getName());
                             scenarioPathLabel.setText(scenarioFilePath);
-                            JOptionPane.showMessageDialog(this, "Scenario saved as " + scenarioFilePath);
+                            JOptionPane.showMessageDialog(this,
+                                    UiElement.scenarioSavedAsFileName.forUserLocale(scenarioFilePath));
                         },
-                        ex -> state.getUtilities().reportThrowable("Error occurred while saving scenario", ex));
+                        ex -> state.getUtilities().reportThrowable(ex, UiElement.errorOccurredWhileSavingScenario));
     }
 
     @Override

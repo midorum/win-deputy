@@ -6,6 +6,7 @@ import com.midorum.win32api.win32.MsLcid;
 import com.midorum.win32api.win32.Win32VirtualKey;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.Win32Adapter;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.SourceType;
 
 import javax.swing.*;
@@ -38,50 +39,50 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         components.add(valueField);
         if (sourceTypes.contains(SourceType.pickFile)) {
             final Button btn = new Button("...");
-            btn.addActionListener(event -> state.getUtilities().pickFile(state,
+            btn.addActionListener(_ -> state.getUtilities().pickFile(state,
                     file -> setValueField(file.getName())));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.makeShot)) {
             final Button btn = new Button("[o]");
-            btn.addActionListener(event -> state.getUtilities().captureAndSaveRegion(state,
+            btn.addActionListener(_ -> state.getUtilities().captureAndSaveRegion(state,
                     savedFile -> setValueField(savedFile.getName())));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.pickAbsolutePoint)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> state.getUtilities().pickAbsolutePoint(pointInt ->
+            btn.addActionListener(_ -> state.getUtilities().pickAbsolutePoint(pointInt ->
                     setValueField(CommonUtil.pointToString(pointInt))));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.pickWindowProcessName)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> state.getUtilities().pickWindowProcessName(this::setValueField));
+            btn.addActionListener(_ -> state.getUtilities().pickWindowProcessName(this::setValueField));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.pickWindowClassName)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> state.getUtilities().pickWindowClassName(this::setValueField));
+            btn.addActionListener(_ -> state.getUtilities().pickWindowClassName(this::setValueField));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.pickWindowTitle)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> state.getUtilities().pickWindowTitle(this::setValueField));
+            btn.addActionListener(_ -> state.getUtilities().pickWindowTitle(this::setValueField));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.pickWindowStyles)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> state.getUtilities().pickWindowStyles(this::setValueField));
+            btn.addActionListener(_ -> state.getUtilities().pickWindowStyles(this::setValueField));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.pickWindowExStyles)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> state.getUtilities().pickWindowExStyles(this::setValueField));
+            btn.addActionListener(_ -> state.getUtilities().pickWindowExStyles(this::setValueField));
             components.add(btn);
         }
         if (sourceTypes.contains(SourceType.captureKeystroke)) {
             final Button btn = new Button("+");
-            btn.addActionListener(event -> captureHotkey());
+            btn.addActionListener(_ -> captureHotkey());
             components.add(btn);
         }
         SwingUtil.putComponentsToHorizontalGrid(this, 0, components.toArray(Component[]::new));
@@ -92,7 +93,7 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         win32Adapter.getAvailableKeyboardLayouts().consumeOrHandleError((Consumer<? super MsLcid[]>) msLcids ->
                         Arrays.stream(msLcids).forEach(msLcid -> layouts.add(msLcid.localeName())),
                 e -> {
-                    state.getUtilities().logThrowable("Cannot obtain available keyboard layouts", e);
+                    state.getUtilities().logThrowable(e, "cannot obtain available keyboard layouts");
                     layouts.add("en-US");
                 });
         final JComboBox<String> comboBox = new JComboBox<>(layouts.toArray(String[]::new));
@@ -118,17 +119,17 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         final GlobalKeyHook.KeyEvent eventToBreakCapturing = new KeyHookHelper.KeyEventBuilder().virtualKey(Win32VirtualKey.VK_ESCAPE).withControl().build();
         final String previousValue = get();
         final Color foregroundColor = valueField.getForeground();
-        setValueField("Enter desired keystroke. Press " + eventToBreakCapturing.toPrettyString() + " to cancel capturing.");
+        setValueField(UiElement.enterDesiredKeystrokeTip.forUserLocale(eventToBreakCapturing.toPrettyString()));
         valueField.setForeground(Color.RED);
         KeyHookHelper.getInstance().captureOnce(eventToBreakCapturing, KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
                 keyEvent -> {
                     setValueField(keyEvent.toPrettyString());
                     valueField.setForeground(foregroundColor);
                 },
-                keyEvent -> {
+                _ -> {
                     setValueField(previousValue);
                     valueField.setForeground(foregroundColor);
-                    state.getUtilities().reportIllegalState("Keystroke was not captured.");
+                    state.getUtilities().reportIllegalState(UiElement.keystrokeNotCaptured);
                 });
     }
 

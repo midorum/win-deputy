@@ -1,15 +1,14 @@
 package midorum.win32.deputy.ui;
 
+import midorum.win32.deputy.i18n.I18nResourcesProvider;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.LogLevel;
 import midorum.win32.deputy.model.Settings;
 import midorum.win32.deputy.model.TaskDispatcher;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.core.config.Configurator;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import java.util.Objects;
 
 class SettingsPane extends JPanel {
 
@@ -24,16 +23,17 @@ class SettingsPane extends JPanel {
     private JComboBox<String> listAllWindowsWhenSearchFailComboBox;
     private JComboBox<LogLevel> rootLogLevelComboBox;
     private JComboBox<LogLevel> libLogLevelComboBox;
+    private JComboBox<I18nResourcesProvider.SupportedLocale> languageComboBox;
 
     SettingsPane(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = taskDispatcher;
         this.uiUtil = uiUtil;
         final Settings settings = Settings.loadFromFile().getOrHandleError(e -> {
-            uiUtil.reportThrowable("Cannot load settings from file", e);
+            uiUtil.reportThrowable(e, UiElement.cannotLoadSettingsFromFile);
             return Settings.defaultSettings();
         });
         SwingUtil.putComponentsToVerticalGrid(this, 1,
-                new JLabel("Settings"),
+                new JLabel(UiElement.settingsLabel.forUserLocale()),
                 createContentPane(settings),
                 createButtonPane());
     }
@@ -49,7 +49,8 @@ class SettingsPane extends JPanel {
                 createUserActivityDelayPane(settings.userActivityDelay()),
                 createListAllWindowsWhenSearchFailPane(settings.listAllWindowsWhenSearchFail()),
                 createRootLogLevelPane(settings.rootLogLevel()),
-                createLibLogLevelPane(settings.libLogLevel())
+                createLibLogLevelPane(settings.libLogLevel()),
+                createLanguagePane(settings.locale())
         );
         return panel;
     }
@@ -58,7 +59,7 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         stampDeviationTextField = new IntegerTextField(0, Integer.MAX_VALUE, Integer.toString(value));
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("Stamp deviation:"),
+                new JLabel(UiElement.stampDeviationLabel.forUserLocale()),
                 stampDeviationTextField
         );
         return panel;
@@ -68,7 +69,7 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         maxRepeatableCountTextField = new IntegerTextField(1, Integer.MAX_VALUE, Integer.toString(value));
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("Max repeatable count:"),
+                new JLabel(UiElement.maxRepeatableCountLabel.forUserLocale()),
                 maxRepeatableCountTextField
         );
         return panel;
@@ -78,7 +79,7 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         initialDelayTextField = new IntegerTextField(0, Integer.MAX_VALUE, Integer.toString(value));
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("Initial delay, seconds:"),
+                new JLabel(UiElement.initialDelayInSecondsLabel.forUserLocale()),
                 initialDelayTextField
         );
         return panel;
@@ -88,7 +89,7 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         delayTextField = new IntegerTextField(1, Integer.MAX_VALUE, Integer.toString(value));
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("Delay between runs, seconds:"),
+                new JLabel(UiElement.delayBetweenRunsInSecondsLabel.forUserLocale()),
                 delayTextField
         );
         return panel;
@@ -98,7 +99,7 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         userActivityDelayTextField = new IntegerTextField(1, Integer.MAX_VALUE, Integer.toString(value));
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("User activity delay, seconds:"),
+                new JLabel(UiElement.userActivityDelayInSecondsLabel.forUserLocale()),
                 userActivityDelayTextField
         );
         return panel;
@@ -109,7 +110,7 @@ class SettingsPane extends JPanel {
         listAllWindowsWhenSearchFailComboBox = new JComboBox<>(new String[]{Boolean.TRUE.toString(), Boolean.FALSE.toString()});
         listAllWindowsWhenSearchFailComboBox.setSelectedItem(Boolean.toString(value));
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("List all windows when search fail:"),
+                new JLabel(UiElement.listAllWindowsWhenSearchFailLabel.forUserLocale()),
                 listAllWindowsWhenSearchFailComboBox
         );
         return panel;
@@ -119,12 +120,8 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         rootLogLevelComboBox = new JComboBox<>(LogLevel.values());
         rootLogLevelComboBox.setSelectedItem(logLevel);
-        rootLogLevelComboBox.addActionListener(_ -> {
-            final LogLevel selected = (LogLevel) rootLogLevelComboBox.getSelectedItem();
-            if (selected != null) LogLevel.setRootLevel(selected);
-        });
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("Root log level:"),
+                new JLabel(UiElement.rootLogLevelLabel.forUserLocale()),
                 rootLogLevelComboBox
         );
         return panel;
@@ -134,13 +131,20 @@ class SettingsPane extends JPanel {
         final JPanel panel = new JPanel();
         libLogLevelComboBox = new JComboBox<>(LogLevel.values());
         libLogLevelComboBox.setSelectedItem(logLevel);
-        libLogLevelComboBox.addActionListener(_ -> {
-            final LogLevel selected = (LogLevel) libLogLevelComboBox.getSelectedItem();
-            if (selected != null) LogLevel.setLibLevel(selected);
-        });
         SwingUtil.putComponentsToHorizontalGrid(panel, 1,
-                new JLabel("Lib log level:"),
+                new JLabel(UiElement.libLogLevelLabel.forUserLocale()),
                 libLogLevelComboBox
+        );
+        return panel;
+    }
+
+    private JPanel createLanguagePane(final I18nResourcesProvider.SupportedLocale locale) {
+        final JPanel panel = new JPanel();
+        languageComboBox = new JComboBox<>(I18nResourcesProvider.SupportedLocale.values());
+        languageComboBox.setSelectedItem(locale);
+        SwingUtil.putComponentsToHorizontalGrid(panel, 1,
+                new JLabel(UiElement.languageLabel.forUserLocale()),
+                languageComboBox
         );
         return panel;
     }
@@ -156,28 +160,48 @@ class SettingsPane extends JPanel {
     }
 
     private Button createSaveButton() {
-        final Button btn = new Button("Save changes");
+        final Button btn = new Button(UiElement.applyButtonText.forUserLocale());
         btn.addActionListener(_ -> {
             try {
-                new Settings(
+                final Settings settings = new Settings(
                         Integer.parseInt(stampDeviationTextField.getText()),
                         Integer.parseInt(maxRepeatableCountTextField.getText()),
                         Integer.parseInt(initialDelayTextField.getText()),
                         Integer.parseInt(delayTextField.getText()),
                         Integer.parseInt(userActivityDelayTextField.getText()),
                         Boolean.parseBoolean((String) listAllWindowsWhenSearchFailComboBox.getSelectedItem()),
-                        LogLevel.valueOf(((LogLevel) Objects.requireNonNull(rootLogLevelComboBox.getSelectedItem())).name()),
-                        LogLevel.valueOf(((LogLevel) Objects.requireNonNull(libLogLevelComboBox.getSelectedItem())).name())
-                ).storeToFile();
+                        getSelectedRootLogLevel(),
+                        getSelectedLibLogLevel(),
+                        getSelectedLocale()
+                );
+                settings.storeToFile();
+                uiUtil.getLogger().info("application settings updated: {}", settings);
+                taskDispatcher.applySettings();
             } catch (IOException ex) {
-                uiUtil.reportThrowable("Cannot store settings to a file", ex);
+                uiUtil.reportThrowable(ex, UiElement.cannotStoreSettingsToFile);
             }
         });
         return btn;
     }
 
+    private LogLevel getSelectedRootLogLevel() {
+        final Object selectedRootLogLevelValue = rootLogLevelComboBox.getSelectedItem();
+        return selectedRootLogLevelValue != null ? (LogLevel) selectedRootLogLevelValue : LogLevel.INFO;
+    }
+
+    private LogLevel getSelectedLibLogLevel() {
+        final Object selectedLibLogLevelValue = libLogLevelComboBox.getSelectedItem();
+        return selectedLibLogLevelValue != null ? (LogLevel) selectedLibLogLevelValue : LogLevel.INFO;
+    }
+
+    private I18nResourcesProvider.SupportedLocale getSelectedLocale() {
+        final Object selectedLanguage = languageComboBox.getSelectedItem();
+        return selectedLanguage != null
+                ? (I18nResourcesProvider.SupportedLocale) selectedLanguage : I18nResourcesProvider.DEFAULT_LOCALE;
+    }
+
     private Button createCloseButton() {
-        final Button btn = new Button("Close");
+        final Button btn = new Button(UiElement.closeButtonText.forUserLocale());
         btn.addActionListener(e -> taskDispatcher.closeSettings());
         return btn;
     }

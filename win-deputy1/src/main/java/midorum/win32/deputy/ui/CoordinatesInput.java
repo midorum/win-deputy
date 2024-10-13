@@ -2,6 +2,7 @@ package midorum.win32.deputy.ui;
 
 import com.midorum.win32api.struct.PointInt;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.i18n.UiElement;
 
 import javax.swing.*;
 import java.awt.*;
@@ -48,7 +49,7 @@ class CoordinatesInput extends JPanel {
             CommonUtil.stringToPoint(value).ifPresentOrElse(pointInt -> {
                 xField.setText(Integer.toString(pointInt.x()));
                 yField.setText(Integer.toString(pointInt.y()));
-            }, () -> state.getUtilities().reportIllegalState("Cannot parse coordinates: " + value));
+            }, () -> state.getUtilities().reportIllegalState(UiElement.cannotParseCoordinates, value));
         }
         SwingUtil.putComponentsToHorizontalGrid(this,
                 new double[]{0.0, 0.5, 0.0, 0.5},
@@ -63,7 +64,7 @@ class CoordinatesInput extends JPanel {
         CommonUtil.stringToPoint(value).ifPresentOrElse(pointInt -> {
             xField.setText(Integer.toString(pointInt.x()));
             yField.setText(Integer.toString(pointInt.y()));
-        }, () -> state.getUtilities().logIllegalState("Cannot parse coordinates from: " + value));
+        }, () -> state.getUtilities().logIllegalState("cannot parse coordinates from: {}", value));
     }
 
     public String getDataValue() {

@@ -2,6 +2,7 @@ package midorum.win32.deputy.executor;
 
 import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,7 +33,7 @@ public class CheckProcessor {
     private Optional<IProcess> getProcess(final Map<CheckDataType, String> data) {
         final String processName = data.get(CheckDataType.processName);
         if (processName == null || processName.isBlank())
-            throw new IllegalArgumentException("Cannot obtain process name from check data");
+            throw new UserMessageException(UiElement.cannotGetDataType, CheckDataType.processName.name());
         final String processExistsGreaterThanData = data.get(CheckDataType.processExistsGreaterThan);
         final String processExistsLessThanData = data.get(CheckDataType.processExistsLessThan);
         if (processExistsGreaterThanData == null && processExistsLessThanData == null)
@@ -45,7 +46,7 @@ public class CheckProcessor {
     private Optional<IWindow> getWindow(final Map<CheckDataType, String> data) {
         final String windowTitle = data.get(CheckDataType.windowTitle);
         if (windowTitle == null || windowTitle.isBlank())
-            throw new IllegalArgumentException("Cannot obtain window title from check data");
+            throw new UserMessageException(UiElement.cannotGetDataType, CheckDataType.windowTitle.name());
         final String windowClassName = data.get(CheckDataType.windowClassName);
         return cache.getWindow(windowTitle, windowClassName)
                 .map(window -> {
@@ -96,7 +97,7 @@ public class CheckProcessor {
     private Optional<Stamp> getStamp(final Map<CheckDataType, String> data, final boolean subtleCheck) {
         final String stampPath = data.get(CheckDataType.stampPath);
         if (stampPath == null || stampPath.isBlank())
-            throw new IllegalArgumentException("Cannot obtain stamp path from check data");
+            throw new UserMessageException(UiElement.cannotGetDataType, CheckDataType.stampPath.name());
         return cache.getStamp(stampPath, subtleCheck);
     }
 

@@ -7,6 +7,7 @@ import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.IWinUser;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.Win32Adapter;
+import midorum.win32.deputy.i18n.UiElement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -47,8 +48,8 @@ class UiUtil {
             } else {
                 if (!selectedFile.exists()
                         || JOptionPane.showConfirmDialog(parentComponent,
-                        "Do you want to replace existing file?",
-                        "Warning",
+                        UiElement.askToReplaceExistingFile.forUserLocale(),
+                        UiElement.warningDialogTitle.forUserLocale(),
                         JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                     return Optional.of(new File(CommonUtil.getWorkingDirectoryForPath(selectedFile.getParentFile()), selectedFile.getName()));
                 } else {
@@ -75,10 +76,8 @@ class UiUtil {
                 state.setWorkingDirectory(selectedDirectory);
             } else if (!Objects.equals(workingDirectory, selectedDirectory)) {
                 if (JOptionPane.showConfirmDialog(parentComponent,
-                        "Your selected directory does not match current working directory." +
-                                " It is not recommended to change working directory." +
-                                " Would you like to change working directory anyway?",
-                        "Warning",
+                        UiElement.workingDirectoryIsGoingToBeChangedWarning.forUserLocale(),
+                        UiElement.warningDialogTitle.forUserLocale(),
                         JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                     state.setWorkingDirectory(selectedDirectory);
                 }
@@ -92,8 +91,8 @@ class UiUtil {
         new CaptureWindow(maybeImage -> maybeImage.ifPresentOrElse(image -> askNewFileAndUpdateState(state, file ->
                         CommonUtil.saveImage(image, CommonUtil.getPathForImages(state.getWorkingDirectory()), file.getName())
                                 .consumeOrHandleError(resultConsumer,
-                                        e -> reportThrowable("Error occurred while saving image", e))),
-                () -> reportState("No rectangle was captured")), win32Adapter).display();
+                                        e -> reportThrowable(e, UiElement.errorOccurredWhileSavingImage))),
+                () -> reportState(UiElement.noRectangleWasCaptured)), win32Adapter).display();
     }
 
     public void pickFile(final State state, final Consumer<File> successFileConsumer) {
@@ -111,10 +110,8 @@ class UiUtil {
             if (Objects.equals(workingDirectory, selectedWorkingDirectory)) {
                 successFileConsumer.accept(file);
             } else if (JOptionPane.showConfirmDialog(parentComponent,
-                    "Your selected directory does not match current working directory." +
-                            " It is not recommended to change working directory." +
-                            " Would you like to change working directory anyway?",
-                    "Warning",
+                    UiElement.workingDirectoryIsGoingToBeChangedWarning.forUserLocale(),
+                    UiElement.warningDialogTitle.forUserLocale(),
                     JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 updateStateAndDoJob.accept(selectedWorkingDirectory, file);
             }
@@ -128,7 +125,7 @@ class UiUtil {
                     return true;
                 },
                 throwable -> {
-                    reportThrowable("Cannot pick mouse pointer position", throwable);
+                    reportThrowable(throwable, UiElement.cannotPickMousePointerPosition);
                     return true;
                 });
     }
@@ -136,61 +133,61 @@ class UiUtil {
     private void pickWindowByPoint(final Consumer<IWindow> resultConsumer) {
         pickAbsolutePoint(pointInt -> win32Adapter.getWindowByPoint(pointInt)
                 .ifPresentOrElse(windowPoint -> resultConsumer.accept(windowPoint.window()),
-                        () -> reportIllegalState("Cannot determine window by point: " + pointInt)));
+                        () -> reportIllegalState(UiElement.cannotDetermineWindowByPoint, pointInt)));
     }
 
     public void pickWindowProcessName(final Consumer<String> resultConsumer) {
         pickWindowByPoint(window -> window.getProcess()
                 .consumeOrHandleError((Consumer<? super IProcess>) iProcess -> iProcess.name()
                                 .ifPresentOrElse(resultConsumer,
-                                        () -> reportIllegalState("Cannot obtain process name")),
-                        e -> reportThrowable("Cannot obtain process information", e)));
+                                        () -> reportIllegalState(UiElement.cannotGetProcessName)),
+                        e -> reportThrowable(e, UiElement.cannotGetProcessInformation)));
     }
 
     public void pickWindowClassName(final Consumer<String> resultConsumer) {
         pickWindowByPoint(window -> window.getClassName().consumeOrHandleError(resultConsumer,
-                e -> reportThrowable("Cannot obtain window class name", e)));
+                e -> reportThrowable(e, UiElement.cannotGetWindowClassName)));
     }
 
     public void pickWindowTitle(final Consumer<String> resultConsumer) {
         pickWindowByPoint(window -> window.getText()
                 .consumeOrHandleError((Consumer<? super Optional<String>>) s -> s.ifPresentOrElse(resultConsumer,
-                                () -> reportState("Window doesn't have title")),
-                        e -> reportThrowable("Cannot get window title", e)));
+                                () -> reportState(UiElement.windowDoesNotHaveTitle)),
+                        e -> reportThrowable(e, UiElement.cannotGetWindowTitle)));
     }
 
     public void pickWindowStyles(final Consumer<String> resultConsumer) {
         pickWindowByPoint(window -> window.getStyle().consumeOrHandleError((Consumer<? super Integer>) styles ->
                         resultConsumer.accept(Integer.toString(styles)),
-                e -> reportThrowable("Cannot get window styles", e)));
+                e -> reportThrowable(e, UiElement.cannotGetWindowStyles)));
     }
 
     public void pickWindowExStyles(final Consumer<String> resultConsumer) {
         pickWindowByPoint(window -> window.getExtendedStyle().consumeOrHandleError((Consumer<? super Integer>) styles ->
                         resultConsumer.accept(Integer.toString(styles)),
-                e -> reportThrowable("Cannot get window extended styles", e)));
+                e -> reportThrowable(e, UiElement.cannotGetWindowExtendedStyles)));
     }
 
-    public void reportThrowable(final String message, final Throwable t) {
+    public void reportThrowable(final Throwable t, final UiElement uiElement, final Object... args) {
+        logger.error(uiElement.forDefaultLocale(args), t);
+        JOptionPane.showMessageDialog(parentComponent, uiElement.forUserLocale(args));
+    }
+
+    public void reportIllegalState(final UiElement uiElement, final Object... args) {
+        logger.error(uiElement.forDefaultLocale(args));
+        JOptionPane.showMessageDialog(parentComponent, uiElement.forUserLocale(args));
+    }
+
+    public void reportState(final UiElement uiElement, final Object... args) {
+        JOptionPane.showMessageDialog(parentComponent, uiElement.forUserLocale(args));
+    }
+
+    public void logThrowable(final Throwable t, final String message) {
         logger.error(message, t);
-        JOptionPane.showMessageDialog(parentComponent, message);
     }
 
-    public void reportIllegalState(final String message) {
-        logger.error(message);
-        JOptionPane.showMessageDialog(parentComponent, message);
-    }
-
-    public void reportState(final String message) {
-        JOptionPane.showMessageDialog(parentComponent, message);
-    }
-
-    public void logThrowable(final String message, final Throwable t) {
-        logger.error(message, t);
-    }
-
-    public void logIllegalState(final String message) {
-        logger.error(message);
+    public void logIllegalState(final String message, final Object... args) {
+        logger.error(message, args);
     }
 
 }

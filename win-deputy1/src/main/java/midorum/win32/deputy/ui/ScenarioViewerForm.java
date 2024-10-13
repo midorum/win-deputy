@@ -7,6 +7,7 @@ import dma.validation.Validator;
 import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
 import midorum.win32.deputy.executor.ExecutorImpl;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,14 +40,11 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     private Scenario scenario;
 
     ScenarioViewerForm(final TaskDispatcher taskDispatcher,
-                       final UiUtil uiUtil) {
+                       final UiUtil uiUtil,
+                       final Settings settings) {
         this.taskDispatcher = Validator.checkNotNull(taskDispatcher).orThrowForSymbol("taskDispatcher");
         this.state = new State(uiUtil);
         this.userActivityObserver = UserActivityObserver.getInstance();
-        final Settings settings = Settings.loadFromFile().getOrHandleError(e -> {
-            uiUtil.logThrowable("cannot load settings from file", e);
-            return Settings.defaultSettings();
-        });
         this.executor = new ExecutorImpl(userActivityObserver, new GuardedWin32Adapter(userActivityObserver), settings);
         this.scenarioPathLabel = new JLabel();
         this.scenarioTitleLabel = new JLabel();
@@ -62,7 +60,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
                 0,
                 createCentralPane(),
                 createButtonPane());
-        scenarioPathLabel.setText("Please choose scenario file or create a new one");
+        scenarioPathLabel.setText(UiElement.scenarioIsNotLoadedLabel.forUserLocale());
         editScenarioButton.setEnabled(false);
         runScenarioButton.setEnabled(false);
         stopScenarioButton.setEnabled(false);
@@ -72,14 +70,15 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     ScenarioViewerForm(final TaskDispatcher taskDispatcher,
                        final Scenario scenario,
                        final File scenarioFile,
-                       final UiUtil uiUtil) {
-        this(taskDispatcher, uiUtil);
+                       final UiUtil uiUtil,
+                       final Settings settings) {
+        this(taskDispatcher, uiUtil, settings);
         this.scenario = scenario;
         state.setWorkingDirectory(scenarioFile.getParentFile());
         state.setScenarioName(scenarioFile.getName());
         scenarioPathLabel.setText(scenarioFile.getAbsolutePath());
         scenarioTitleLabel.setText(scenario.getTitle());
-        scenario.getDescription().ifPresent(text -> scenarioDescriptionLabel.setText("<html><p>"+text+"</p></html>")); // word wrap hack
+        scenario.getDescription().ifPresent(text -> scenarioDescriptionLabel.setText("<html><p>" + text + "</p></html>")); // word wrap hack
         editScenarioButton.setEnabled(true);
         runScenarioButton.setEnabled(true);
         showCentralButton(false);
@@ -89,7 +88,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         final Font font = scenarioTitleLabel.getFont();
         final Font enlargedFont = new Font(font.getName(), Font.BOLD, 30);
         final Font middleFont = new Font(font.getName(), Font.PLAIN, 18);
-        final JLabel currentScenarioLabel = new JLabel("Current scenario");
+        final JLabel currentScenarioLabel = new JLabel(UiElement.currentScenarioLabel.forUserLocale());
         currentScenarioLabel.setFont(middleFont);
         currentScenarioLabel.setHorizontalAlignment(SwingConstants.CENTER);
         scenarioTitleLabel.setFont(enlargedFont);
@@ -139,31 +138,31 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         buttonPane.add(editScenarioButton);
         buttonPane.add(showSettingsButton);
         buttonPane.add(openLogsButton());
-        buttonPane.add(createShowCreditsButton());
+        buttonPane.add(createShowAboutButton());
         return buttonPane;
     }
 
     private Button createLoadScenarioButton() {
-        final Button btn = new Button("Load scenario");
+        final Button btn = new Button(UiElement.loadScenarioButtonText.forUserLocale());
         btn.addActionListener(_ -> taskDispatcher.loadScenario());
         return btn;
     }
 
     private Button createEditScenarioButton() {
-        final Button btn = new Button("Edit scenario");
+        final Button btn = new Button(UiElement.editScenarioButtonText.forUserLocale());
         btn.addActionListener(_ -> taskDispatcher.editScenario(new File(state.getWorkingDirectory(),
                 state.getScenarioName()).getAbsolutePath()));
         return btn;
     }
 
     private Button createCreateScenarioButton() {
-        final Button btn = new Button("Create scenario");
+        final Button btn = new Button(UiElement.createScenarioButtonText.forUserLocale());
         btn.addActionListener(_ -> taskDispatcher.createNewScenario());
         return btn;
     }
 
     private Button createRunScenarioButton() {
-        final Button btn = new Button("Run scenario");
+        final Button btn = new Button(UiElement.runScenarioButtonText.forUserLocale());
         btn.addActionListener(_ -> {
             if (scenario != null) {
                 lockForm();
@@ -171,11 +170,11 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
                 if (oldHook != null) oldHook.unhook();
                 executor.sendRoutineTask(state.getWorkingDirectory(), scenario, throwable -> {
                     if (throwable instanceof UserMessageException ex) {
-                        state.getUtilities().reportThrowable(ex.getMessage(), ex);
+                        state.getUtilities().reportThrowable(ex, ex.getUiElement(), ex.getArgs());
                     } else if (throwable instanceof ControlledInterruptedException ex) {
-                        state.getUtilities().reportThrowable("Scenario executing has been interrupted", ex);
+                        state.getUtilities().reportThrowable(ex, UiElement.scenarioExecutingInterrupted);
                     } else {
-                        state.getUtilities().reportThrowable("Error occurred while executing scenario", throwable);
+                        state.getUtilities().reportThrowable(throwable, UiElement.errorOccurredWhileExecutingScenario);
                     }
                     unlockForm();
                 });
@@ -185,7 +184,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     }
 
     private Button createStopScenarioButton() {
-        final Button btn = new Button("Stop scenario");
+        final Button btn = new Button(UiElement.stopScenarioButtonText.forUserLocale());
         btn.addActionListener(_ -> {
             executor.cancelCurrentTask();
             final GlobalKeyHook cancelKeyHook = this.cancelKeyHook.get();
@@ -198,25 +197,25 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
     }
 
     private Button createShowSettingsButton() {
-        final Button btn = new Button("Settings");
+        final Button btn = new Button(UiElement.settingsButtonText.forUserLocale());
         btn.addActionListener(_ -> taskDispatcher.showSettings());
         return btn;
     }
 
     private Button openLogsButton() {
-        final Button btn = new Button("Logs");
+        final Button btn = new Button(UiElement.logsButtonText.forUserLocale());
         btn.addActionListener(_ -> {
             try {
                 Desktop.getDesktop().open(new File("logs"));
             } catch (IOException ex) {
-                state.getUtilities().reportThrowable("Cannot open logs location", ex);
+                state.getUtilities().reportThrowable(ex, UiElement.cannotOpenLogsLocation);
             }
         });
         return btn;
     }
 
-    private Button createShowCreditsButton() {
-        final Button btn = new Button("Credits");
+    private Button createShowAboutButton() {
+        final Button btn = new Button(UiElement.aboutButtonText.forUserLocale());
         btn.addActionListener(_ -> taskDispatcher.showCredits());
         return btn;
     }
@@ -265,7 +264,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
                     return isNeedStop ? KeyHookHelper.Result.deleteHook : KeyHookHelper.Result.propagateEvent;
                 },
                 throwable -> {
-                    state.getUtilities().logThrowable("error occurred while cancel executing task", throwable);
+                    state.getUtilities().logThrowable(throwable, "error occurred while cancel executing task");
                     return KeyHookHelper.Result.keepHook;
                 }
         );

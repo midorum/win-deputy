@@ -2,6 +2,7 @@ package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
 import dma.validation.Validator;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
@@ -24,8 +25,8 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
     private final JCheckBox producesFragileStateCheckBox;
 
     ActivityEditPane(final Activity activity, final State state) {
-        final Activity activityChecked = Validator.checkNotNull(activity).orThrow("activity");
-        this.state = state;
+        final Activity activityChecked = Validator.checkNotNull(activity).orThrowForSymbol("activity");
+        this.state = Validator.checkNotNull(state).orThrowForSymbol("state");
         this.checks = new ArrayList<>();
         final List<Check> activityChecks = activityChecked.getChecks();
         if (activityChecks != null) {
@@ -55,8 +56,9 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
                 .map(waitingList -> new WaitingListEditWrapperPane(waitingList, state))
                 .orElse(new WaitingListEditWrapperPane(state));
         waitingListEditWrapperPane.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
-        this.repeatableCheckBox = new JCheckBox("repeatable", activityChecked.isRepeatable());
-        this.producesFragileStateCheckBox = new JCheckBox("produces fragile state", activityChecked.producesFragileState());
+        this.repeatableCheckBox = new JCheckBox(UiElement.repeatableLabel.forUserLocale(), activityChecked.isRepeatable());
+        this.producesFragileStateCheckBox = new JCheckBox(UiElement.producesFragileStateLabel.forUserLocale(),
+                activityChecked.producesFragileState());
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 titleField,
@@ -84,7 +86,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
     private void deleteCheck(final CheckWrapperPane checkPane) {
         if (checks.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last check from activity");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastCheck.forUserLocale());
             return;
         }
         checks.remove(checkPane);
@@ -109,7 +111,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
     private boolean canIgnoreCheck() {
         if (checks.stream().filter(checkWrapperPane -> !checkWrapperPane.isIgnore()).findAny().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "You cannot ignore last check from activity");
+            JOptionPane.showMessageDialog(this, UiElement.cannotIgnoreLastCheck.forUserLocale());
             return false;
         }
         return true;
@@ -135,7 +137,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
     private void deleteCommand(final CommandWrapperPane commandPane) {
         if (commands.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last command from activity");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastCommand.forUserLocale());
             return;
         }
         commands.remove(commandPane);
@@ -188,7 +190,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         final String title = titleField.getText();
         if (title == null || title.isBlank()) {
             titleField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Activity title cannot be empty");
+            throw new IllegalInputException(UiElement.activityTitleCannotBeEmpty);
         }
         titleField.setBorder(null);
         return title;
@@ -200,14 +202,14 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
             final Check check = next.get();
             if (!Activity.validateCheckListItem(check)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal check");
+                throw new IllegalInputException(UiElement.illegalCheck);
             }
             next.setBorder(null);
             checkList.add(check);
         }
         if (!Activity.validateChecks(checkList)) {
             checksPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal checks");
+            throw new IllegalInputException(UiElement.illegalChecks);
         }
         checksPane.setBorder(null);
         return checkList;
@@ -219,14 +221,14 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
             final Command command = next.get();
             if (!Activity.validateCommandListItem(command)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal command");
+                throw new IllegalInputException(UiElement.illegalCommand);
             }
             next.setBorder(null);
             commandList.add(command);
         }
         if (!Activity.validateCommands(commandList)) {
             commandsPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal checks");
+            throw new IllegalInputException(UiElement.illegalCommands);
         }
         commandsPane.setBorder(null);
         return commandList;
@@ -256,7 +258,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         private JPanel createButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-            panel.add(new JLabel("Check"));
+            panel.add(new JLabel(UiElement.checkLabel.forUserLocale()));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
@@ -267,32 +269,32 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
         private Button createAddButton() {
             final Button btn = new Button("+");
-            btn.addActionListener(e -> addCheckBelow(this));
+            btn.addActionListener(_ -> addCheckBelow(this));
             return btn;
         }
 
         private Button createDeleteButton() {
             final Button btn = new Button("x");
-            btn.addActionListener(e -> deleteCheck(this));
+            btn.addActionListener(_ -> deleteCheck(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
             final Button btn = new Button("^");
-            btn.addActionListener(e -> moveCheckUp(this));
+            btn.addActionListener(_ -> moveCheckUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
             final Button btn = new Button("v");
-            btn.addActionListener(e -> moveCheckDown(this));
+            btn.addActionListener(_ -> moveCheckDown(this));
             return btn;
         }
 
         private JCheckBox createIgnoreCheckBox(final boolean ignore) {
             final JCheckBox checkBox;
-            checkBox = new JCheckBox("ignore");
-            checkBox.addActionListener(e -> {
+            checkBox = new JCheckBox(UiElement.ignoreLabel.forUserLocale());
+            checkBox.addActionListener(_ -> {
                 if (checkBox.isSelected() && !canIgnoreCheck()) {
                     checkBox.setSelected(false);
                 }
@@ -324,7 +326,7 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-            panel.add(new JLabel("Command"));
+            panel.add(new JLabel(UiElement.commandLabel.forUserLocale()));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
@@ -334,25 +336,25 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
 
         private Button createAddButton() {
             final Button btn = new Button("+");
-            btn.addActionListener(e -> addCommandBelow(this));
+            btn.addActionListener(_ -> addCommandBelow(this));
             return btn;
         }
 
         private Button createDeleteButton() {
             final Button btn = new Button("x");
-            btn.addActionListener(e -> deleteCommand(this));
+            btn.addActionListener(_ -> deleteCommand(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
             final Button btn = new Button("^");
-            btn.addActionListener(e -> moveCommandUp(this));
+            btn.addActionListener(_ -> moveCommandUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
             final Button btn = new Button("v");
-            btn.addActionListener(e -> moveCommandDown(this));
+            btn.addActionListener(_ -> moveCommandDown(this));
             return btn;
         }
 
@@ -386,12 +388,12 @@ class ActivityEditPane extends JPanel implements SupplierThrowing<Activity, Ille
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel();
             addWaitingButton = new Button("+");
-            addWaitingButton.addActionListener(e -> addWaitingList(new WaitingList(), state));
+            addWaitingButton.addActionListener(_ -> addWaitingList(new WaitingList(), state));
             deleteWaitingButton = new Button("-");
-            deleteWaitingButton.addActionListener(e -> deleteWaitingList());
+            deleteWaitingButton.addActionListener(_ -> deleteWaitingList());
             SwingUtil.putComponentsToHorizontalGrid(panel,
                     0,
-                    new JLabel("Waiting list (at least one of them must be fulfilled)"),
+                    new JLabel(UiElement.waitingListLabel.forUserLocale()),
                     addWaitingButton,
                     deleteWaitingButton);
             return panel;

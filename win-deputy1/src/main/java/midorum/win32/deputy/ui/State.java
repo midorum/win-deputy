@@ -1,7 +1,6 @@
 package midorum.win32.deputy.ui;
 
-import dma.file.FileInputStream;
-import dma.file.FileOutputStream;
+import dma.file.v2.FileUtil;
 import midorum.win32.deputy.common.Either;
 import midorum.win32.deputy.common.Win32Adapter;
 
@@ -47,9 +46,9 @@ class State {
     }
 
     public static Either<State, IOException> loadState(final UiUtil utilities) {
-        return Either.value(() -> FileInputStream.getInstance().useWithInputStream(STATE_FILE_NAME, inputStream -> {
+        return Either.value(() -> FileUtil.withText(STATE_FILE_NAME).asReader(reader -> {
             Properties appProps = new Properties();
-            appProps.load(inputStream);
+            appProps.load(reader);
             final State state = new State(utilities);
             state.setWorkingDirectory(new File(appProps.getProperty(WORKING_DIRECTORY_PROPERTY_NAME)));
             state.setScenarioName(appProps.getProperty(SCENARIO_NAME_PROPERTY_NAME));
@@ -58,11 +57,11 @@ class State {
     }
 
     public void storeToFile() throws IOException {
-        FileOutputStream.getInstance().rewriteWithOutputStream(STATE_FILE_NAME, outputStream -> {
+        FileUtil.withText(STATE_FILE_NAME).overwriteThroughWriter(writer -> {
             Properties appProps = new Properties();
             appProps.setProperty(WORKING_DIRECTORY_PROPERTY_NAME, getWorkingDirectory().getAbsolutePath());
             appProps.setProperty(SCENARIO_NAME_PROPERTY_NAME, getScenarioName());
-            appProps.store(outputStream, null);
+            appProps.store(writer, null);
         });
     }
 }

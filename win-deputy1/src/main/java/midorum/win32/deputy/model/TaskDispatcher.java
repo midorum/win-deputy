@@ -15,6 +15,8 @@ public interface TaskDispatcher {
 
     void closeCredits();
 
+    void applySettings();
+
     void closeSettings();
 
     void showSettings();

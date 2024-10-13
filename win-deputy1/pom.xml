@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>win-deputy1</artifactId>
-    <version>0.1.1-rc_2</version>
+    <version>0.1.1-rc_4</version>
 
     <properties>
         <project.organization.name>midorum</project.organization.name>
@@ -23,7 +23,7 @@
         <maven.compiler.target>22</maven.compiler.target>
         <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
-        <dma-util.version>0.3.11++time-measurer-2.0</dma-util.version>
+        <dma-util.version>0.3.13++time-measurer-2.0</dma-util.version>
         <midorum.Win32API.version>0.4.0</midorum.Win32API.version>
         <log4j.version>2.20.0</log4j.version>
         <jackson.version>2.17.2</jackson.version>
@@ -48,6 +48,11 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-iostreams</artifactId>
             <version>${log4j.version}</version>
         </dependency>
         <!--support sl4j logging in underlying libraries-->

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import dma.file.FileInputStream;
+import dma.file.v2.FileUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -49,7 +49,7 @@ public class FileServiceProvider {
         }
 
         public BufferedImage readImage() throws IOException {
-            return FileInputStream.getInstance().useWithInputStream(file, ImageIO::read);
+            return FileUtil.withBinary(file).asStream(ImageIO::read);
         }
 
         public File writeJson(final Object object) throws IOException {

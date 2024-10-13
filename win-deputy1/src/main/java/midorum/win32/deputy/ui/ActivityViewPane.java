@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.Activity;
 import midorum.win32.deputy.model.IllegalInputException;
 
@@ -14,7 +15,8 @@ class ActivityViewPane extends JPanel implements SupplierThrowing<Activity, Ille
         this.activity = activity;
         final JLabel titleLabel = new JLabel(activity.getTitle());
         final JLabel descriptionLabel = new JLabel(activity.getDescription().orElse(null));
-        final JCheckBox repeatableCheckBox = new JCheckBox("repeatable", activity.isRepeatable());
+        final JCheckBox repeatableCheckBox = new JCheckBox(UiElement.repeatableLabel.forUserLocale(),
+                activity.isRepeatable());
         repeatableCheckBox.setEnabled(false);
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,

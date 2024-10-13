@@ -7,7 +7,7 @@ import com.midorum.win32api.win32.MsLcid;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
-import midorum.win32.deputy.common.Win32Adapter;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,12 +76,12 @@ public class CommandProcessor {
     private PointInt getMousePosition(final Map<CommandDataType, String> data) {
         final String mousePositionData = data.get(CommandDataType.mousePosition);
         if (mousePositionData != null) return CommonUtil.stringToPoint(mousePositionData)
-                .orElseThrow(() -> new IllegalStateException("cannot parse coordinates from " + mousePositionData));
+                .orElseThrow(() -> new UserMessageException(UiElement.cannotParseCoordinates, mousePositionData));
         final String mouseShotRelatedPositionData = data.get(CommandDataType.mouseShotRelatedPosition);
         if (mouseShotRelatedPositionData != null) {
             //FIXME do we need support subtle commands?
             final Rectangle location = cache.getStamp(mouseShotRelatedPositionData, false)
-                    .orElseThrow(() -> new IllegalStateException("cannot obtain shot from " + mouseShotRelatedPositionData))
+                    .orElseThrow(() -> new UserMessageException(UiElement.cannotGetShot, mouseShotRelatedPositionData))
                     .location();
             final String mouseRelativePositionData = data.get(CommandDataType.mouseRelativePosition);
             if (mouseRelativePositionData == null) {
@@ -93,17 +93,17 @@ public class CommandProcessor {
                 return new PointInt(location.left() + offset.x(), location.top() + offset.y());
             }
         }
-        throw new UnsupportedOperationException("unsupported command data types: " + data);
+        throw new UserMessageException(UiElement.unsupportedCommandDataTypes, data);
     }
 
     private void keyboardType(final Map<CommandDataType, String> data) throws Win32ApiException {
         final String keyboardTypeTextData = data.get(CommandDataType.keyboardTypeText);
-        if (keyboardTypeTextData == null) throw new IllegalStateException("cannot obtain keyboardTypeText data");
+        if (keyboardTypeTextData == null) throw new UserMessageException(UiElement.cannotGetDataType, "keyboardTypeText");
         final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
         final String keyboardLayoutData = data.get(CommandDataType.keyboardLayout);
         if (keyboardLayoutData != null) {
             window.setKeyboardLayout(MsLcid.fromLayoutName(keyboardLayoutData)
-                    .orElseThrow(() -> new IllegalStateException("cannot parse keyboard layout: " + keyboardLayoutData)));
+                    .orElseThrow(() -> new UserMessageException(UiElement.cannotParseKeyboardLayout, keyboardLayoutData)));
         }
         window.getKeyboard().type(keyboardTypeTextData, (order, virtualCode) -> {
             logger.trace("put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
@@ -114,7 +114,7 @@ public class CommandProcessor {
 
     private void keyboardHitKey(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
         final String keyboardKeyStrokeData = data.get(CommandDataType.keyboardKeyStroke);
-        if (keyboardKeyStrokeData == null) throw new IllegalStateException("cannot obtain keyboardKeyStroke data");
+        if (keyboardKeyStrokeData == null) throw new UserMessageException(UiElement.cannotGetDataType, "keyboardKeyStroke");
         final String keyboardKeyStrokeDelayValue = data.get(CommandDataType.keyboardKeyStrokeDelay);
         final long delay = keyboardKeyStrokeDelayValue != null ? Long.parseLong(keyboardKeyStrokeDelayValue) : 0L;
         final HotKey hotKey = HotKey.valueOf(keyboardKeyStrokeData);
@@ -198,10 +198,10 @@ public class CommandProcessor {
     private IWindow getWindow(final String windowTitleData, final String windowClassNameData) {
         return windowTitleData != null || windowClassNameData != null
                 ? cache.getWindow(windowTitleData, windowClassNameData)
-                .orElseThrow(() -> new IllegalStateException("cannot obtain window with title [" + windowTitleData + "]" +
-                        " and class [" + windowClassNameData + "]"))
+                .orElseThrow(() -> new UserMessageException(UiElement.cannotGetNativeWindow,
+                        windowTitleData, windowClassNameData))
                 : win32Adapter.getForegroundWindow()
-                .orElseThrow(() -> new IllegalStateException("cannot obtain foreground window"));
+                .orElseThrow(() -> new UserMessageException(UiElement.cannotGetForegroundWindow));
     }
 
 }

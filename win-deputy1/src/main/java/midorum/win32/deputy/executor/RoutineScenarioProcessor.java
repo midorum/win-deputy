@@ -5,6 +5,7 @@ import dma.util.Delay;
 import dma.util.DurationFormatter;
 import dma.validation.Validator;
 import midorum.win32.deputy.common.*;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -103,9 +104,8 @@ class RoutineScenarioProcessor implements Runnable {
                 final int activityRepeated = repeatableCounter.updateAndGet(operand ->
                         currentIndex == repeatableIndex.getAndSet(currentIndex) ? operand + 1 : 0);
                 if (!activity.isRepeatable() && activityRepeated >= settings.maxRepeatableCount()) {
-                    throw makeShotAndGetException("Activity \"" + activity.getTitle() + "\" (" + currentIndex + ")" +
-                            " was executed " + settings.maxRepeatableCount() + " times in a row but it's not marked as repeatable." +
-                            " Maybe you've missed something. Interrupt scenario execution");
+                    throw makeShotAndGetException(UiElement.maxRepeatableCountExceeded,
+                            activity.getTitle(), currentIndex, settings.maxRepeatableCount());
                 }
                 if (activity.producesFragileState()) {
                     logger.warn("Activity {} (\"{}\") marked as produces a fragile state. So try to perform next round gently.",
@@ -136,14 +136,14 @@ class RoutineScenarioProcessor implements Runnable {
             }
             cache.invalidate();
             if (wasPerformed < 0) {
-                throw makeShotAndGetException("No one activity was performed. Maybe you've missed something. Interrupt scenario execution");
+                throw makeShotAndGetException(UiElement.noOneActivityWasPerformed);
             }
             if (wasPerformed < activities.size() - 1) {
                 logger.info("routine task done");
                 return;
             }
             if (scenario.getType() == ScenarioType.oneTime) {
-                throw new UserMessageException("Scenario \"" + scenario.getTitle() + "\" done its job");
+                throw new UserMessageException(UiElement.scenarioDone, scenario.getTitle());
             }
             if (scenario.getType() == ScenarioType.repeatable) {
                 final Map<ScenarioDataType, String> data = scenario.getData().orElse(Map.of());
@@ -173,9 +173,9 @@ class RoutineScenarioProcessor implements Runnable {
         }
     }
 
-    private UserMessageException makeShotAndGetException(final String message) {
-        makeShot(message);
-        return new UserMessageException(message);
+    private UserMessageException makeShotAndGetException(final UiElement uiElement, final Object... args) {
+        makeShot(uiElement.forDefaultLocale(args));
+        return new UserMessageException(uiElement, args);
     }
 
     private void makeShot(final String message) {

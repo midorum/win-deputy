@@ -3,9 +3,15 @@ package midorum.win32.deputy.ui;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.Either;
 import midorum.win32.deputy.common.Win32Adapter;
+import midorum.win32.deputy.i18n.I18nResourcesProvider;
+import midorum.win32.deputy.i18n.UiElement;
+import midorum.win32.deputy.model.LogLevel;
 import midorum.win32.deputy.model.Scenario;
+import midorum.win32.deputy.model.Settings;
 import midorum.win32.deputy.model.TaskDispatcher;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.io.IoBuilder;
 
 import java.awt.*;
 import java.io.File;
@@ -15,6 +21,7 @@ import java.net.JarURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -26,22 +33,13 @@ public class MainForm implements TaskDispatcher {
     private final State state;
     private final JFrame frame;
     private final UiUtil uiUtil;
+    private final AtomicReference<Settings> settings = new AtomicReference<>();
 
     public MainForm() {
+        redirectSystemOutputToLogger();
         final String appVersion = getVersion();
         this.frame = new JFrame("Win Deputy v" + appVersion);
-
-        this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.uiUtil = new UiUtil(frame, new Win32Adapter());
-        final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        this.frame.setPreferredSize(new Dimension(700, screenSize.height));
-        this.state = State.loadState(uiUtil).getOrHandleError(e -> {
-            if (!(e instanceof FileNotFoundException)) {
-                uiUtil.reportThrowable("Error occurred while loading application state", e);
-            }
-            return new State(uiUtil);
-        });
-        setIcon();
         final Logger logger = uiUtil.getLogger();
         logger.info("--------------------------------------------------------");
         logger.info("version: {}", appVersion);
@@ -55,15 +53,21 @@ public class MainForm implements TaskDispatcher {
         logger.info("display mode: {}", GraphicsEnvironment.getLocalGraphicsEnvironment()
                 .getDefaultScreenDevice().getDisplayMode());
         logger.info("--------------------------------------------------------");
+        this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        this.frame.setPreferredSize(new Dimension(700, screenSize.height));
+        this.state = loadState();
+        setIcon();
+        loadAndApplySettings();
     }
 
-    private void setIcon() {
-        try {
-            final URL resource = getClass().getResource("/icons/droid-robot.png");
-            if (resource != null) this.frame.setIconImage(ImageIO.read(resource));
-        } catch (IOException e) {
-            uiUtil.logThrowable("Error occurred while loading application icon", e);
-        }
+    private void redirectSystemOutputToLogger() {
+        System.setOut(IoBuilder.forLogger("System.out").setLevel(Level.DEBUG).buildPrintStream());
+        System.setErr(IoBuilder.forLogger("System.err").setLevel(Level.ERROR).buildPrintStream());
+    }
+
+    private String getVersion() {
+        return getClass().getPackage().getImplementationVersion();
     }
 
     private Optional<String> buildTimeString() {
@@ -84,6 +88,41 @@ public class MainForm implements TaskDispatcher {
         return Optional.empty();
     }
 
+    private State loadState() {
+        return State.loadState(uiUtil).getOrHandleError(e -> {
+            if (!(e instanceof FileNotFoundException)) {
+                uiUtil.reportThrowable(e, UiElement.errorOccurredWhileLoadingApplicationState);
+            }
+            return new State(uiUtil);
+        });
+    }
+
+    private void setIcon() {
+        try {
+            final URL resource = getClass().getResource("/icons/droid-robot.png");
+            if (resource != null) this.frame.setIconImage(ImageIO.read(resource));
+        } catch (IOException e) {
+            uiUtil.logThrowable(e, "error occurred while loading application icon");
+        }
+    }
+
+    private void loadAndApplySettings() {
+        final Settings settings = Settings.loadFromFile().getOrHandleError(e -> {
+            uiUtil.logThrowable(e, "cannot load settings from file");
+            uiUtil.logIllegalState(">>> settings loading failed");
+            return Settings.defaultSettings();
+        });
+        uiUtil.logIllegalState(">>> settings loaded: {}", settings);
+        this.settings.set(settings);
+        uiUtil.logIllegalState(">>> settings set");
+        LogLevel.setRootLevel(settings.rootLogLevel());
+        uiUtil.logIllegalState(">>> root logger set to {}", settings.rootLogLevel().name());
+        LogLevel.setLibLevel(settings.libLogLevel());
+        uiUtil.logIllegalState(">>> lib logger set to {}", settings.libLogLevel().name());
+        I18nResourcesProvider.getInstance().setUserLocale(settings.locale());
+        uiUtil.logIllegalState(">>> locale set to {}", settings.locale().name());
+    }
+
     public static void main(String[] args) {
         new MainForm().display();
     }
@@ -95,14 +134,12 @@ public class MainForm implements TaskDispatcher {
     }
 
     private void showForm(final Component form) {
-        final Container contentPane = frame.getContentPane();
-        contentPane.removeAll();
-        SwingUtil.putComponentsToVerticalGrid(contentPane, 0, form);
-        contentPane.revalidate();
-    }
-
-    private String getVersion() {
-        return getClass().getPackage().getImplementationVersion();
+        SwingUtilities.invokeLater(() -> {
+            final Container contentPane = frame.getContentPane();
+            contentPane.removeAll();
+            SwingUtil.putComponentsToVerticalGrid(contentPane, 0, form);
+            contentPane.revalidate();
+        });
     }
 
     @Override
@@ -120,11 +157,11 @@ public class MainForm implements TaskDispatcher {
         loadScenarioPath(scenarioPath, (eitherScenarioOrError, file) ->
                 eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario -> {
                             updateState(file);
-                            showForm(new ScenarioViewerForm(this, scenario, file, uiUtil));
+                            showForm(new ScenarioViewerForm(this, scenario, file, uiUtil, settings.get()));
                         },
                         e -> {
-                            state.getUtilities().reportThrowable("Error occurred while loading scenario", e);
-                            showForm(new ScenarioViewerForm(this, uiUtil));
+                            state.getUtilities().reportThrowable(e, UiElement.errorOccurredWhileLoadingScenario);
+                            showForm(new ScenarioViewerForm(this, uiUtil, settings.get()));
                         }));
     }
 
@@ -133,7 +170,7 @@ public class MainForm implements TaskDispatcher {
         loadScenarioPath(scenarioPath, (eitherScenarioOrError, file) ->
                 eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario ->
                                 showForm(new ScenarioEditorForm(this, scenario, file, uiUtil)),
-                        e -> state.getUtilities().reportThrowable("Error occurred while loading scenario", e)));
+                        e -> state.getUtilities().reportThrowable(e, UiElement.errorOccurredWhileLoadingScenario)));
     }
 
     @Override
@@ -141,22 +178,28 @@ public class MainForm implements TaskDispatcher {
         askScenarioPath((eitherScenarioOrError, file) ->
                 eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario -> {
                             updateState(file);
-                            showForm(new ScenarioViewerForm(this, scenario, file, uiUtil));
+                            showForm(new ScenarioViewerForm(this, scenario, file, uiUtil, settings.get()));
                         },
                         e -> {
-                            state.getUtilities().reportThrowable("Error occurred while loading scenario", e);
-                            showForm(new ScenarioViewerForm(this, uiUtil));
+                            state.getUtilities().reportThrowable(e, UiElement.errorOccurredWhileLoadingScenario);
+                            showForm(new ScenarioViewerForm(this, uiUtil, settings.get()));
                         }));
     }
 
     @Override
     public void showCredits() {
-        showForm(new CreditsPane(this, uiUtil));
+        showForm(new AboutPane(this, uiUtil));
     }
 
     @Override
     public void closeCredits() {
         resetScenarioViewerForm();
+    }
+
+    @Override
+    public void applySettings() {
+       loadAndApplySettings();
+       showSettings();
     }
 
     @Override
@@ -187,21 +230,21 @@ public class MainForm implements TaskDispatcher {
         try {
             state.storeToFile();
         } catch (IOException e) {
-            state.getUtilities().reportThrowable("Error occurred while saving application state", e);
+            state.getUtilities().reportThrowable(e, UiElement.errorOccurredWhileSavingApplicationState);
         }
     }
 
     private void resetScenarioViewerForm() {
         if (state.getWorkingDirectory() == null || state.getScenarioName() == null) {
-            showForm(new ScenarioViewerForm(this, uiUtil));
+            showForm(new ScenarioViewerForm(this, uiUtil, settings.get()));
         } else {
             loadScenarioPath(new File(state.getWorkingDirectory(), state.getScenarioName()).getAbsolutePath(),
                     (eitherScenarioOrError, file) ->
                             eitherScenarioOrError.consumeOrHandleError((Consumer<? super Scenario>) scenario ->
-                                            showForm(new ScenarioViewerForm(this, scenario, file, uiUtil)),
+                                            showForm(new ScenarioViewerForm(this, scenario, file, uiUtil, settings.get())),
                                     e -> {
-                                        state.getUtilities().reportThrowable("Error occurred while loading scenario", e);
-                                        showForm(new ScenarioViewerForm(this, uiUtil));
+                                        state.getUtilities().reportThrowable(e, UiElement.errorOccurredWhileLoadingScenario);
+                                        showForm(new ScenarioViewerForm(this, uiUtil, settings.get()));
                                     }));
         }
     }

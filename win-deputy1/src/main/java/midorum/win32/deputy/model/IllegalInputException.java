@@ -1,12 +1,14 @@
 package midorum.win32.deputy.model;
 
-public class IllegalInputException extends Exception {
+import midorum.win32.deputy.i18n.UiElement;
 
-    public IllegalInputException(String message) {
-        super(message);
+public class IllegalInputException extends UserMessageException {
+
+    public IllegalInputException(final Throwable cause, final UiElement uiElement, final Object... args) {
+        super(cause, uiElement, args);
     }
 
-    public IllegalInputException(final String message, final Throwable cause) {
-        super(message, cause);
+    public IllegalInputException(final UiElement uiElement, final Object... args) {
+        super(uiElement, args);
     }
 }
