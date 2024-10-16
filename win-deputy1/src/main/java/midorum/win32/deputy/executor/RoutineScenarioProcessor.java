@@ -4,10 +4,8 @@ import com.midorum.win32api.facade.exception.Win32ApiException;
 import dma.util.Delay;
 import dma.util.DurationFormatter;
 import dma.validation.Validator;
-import midorum.win32.deputy.common.CommonUtil;
-import midorum.win32.deputy.common.DefaultSettings;
-import midorum.win32.deputy.common.UserActivityObserver;
-import midorum.win32.deputy.common.Win32Adapter;
+import midorum.win32.deputy.common.*;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +25,7 @@ class RoutineScenarioProcessor implements Runnable {
     private final File workingDirectory;
     private final Scenario scenario;
     private final UserActivityObserver userActivityObserver;
-    private final Win32Adapter win32Adapter;
+    private final GuardedWin32Adapter win32Adapter;
     private final Settings settings;
     private final Win32Cache cache;
     private final CheckProcessor checkProcessor;
@@ -42,12 +40,13 @@ class RoutineScenarioProcessor implements Runnable {
     RoutineScenarioProcessor(final File workingDirectory,
                              final Scenario scenario,
                              final UserActivityObserver userActivityObserver,
-                             final Win32Adapter win32Adapter, final Settings settings) {
+                             final GuardedWin32Adapter win32Adapter,
+                             final Settings settings) {
         this.workingDirectory = Validator.checkNotNull(workingDirectory).orThrowForSymbol("workingDirectory");
         this.scenario = Validator.checkNotNull(scenario).orThrowForSymbol("scenario");
         this.userActivityObserver = Validator.checkNotNull(userActivityObserver).orThrowForSymbol("userActivityObserver");
-        this.win32Adapter = win32Adapter;
-        this.settings = settings;
+        this.win32Adapter = Validator.checkNotNull(win32Adapter).orThrowForSymbol("win32Adapter");
+        this.settings = Validator.checkNotNull(settings).orThrowForSymbol("settings");
         this.cache = new Win32Cache(workingDirectory, win32Adapter, settings);
         this.checkProcessor = new CheckProcessor(cache);
         this.commandProcessor = new CommandProcessor(cache, userActivityObserver, win32Adapter);
@@ -57,25 +56,30 @@ class RoutineScenarioProcessor implements Runnable {
     public void run() {
         try {
             logger.info("routine task started {}", beGentle.get() ? "(gentle mode)" : "");
-            final long l = lastUserKeyEventTime.get();
-            if (l > 0) {
+            final long lastUserActivityTime = lastUserKeyEventTime.get();
+            if (lastUserActivityTime > 0) {
                 cache.invalidate();
                 userActivityObserver.reset();
                 repeatableIndex.set(-1);
                 repeatableCounter.set(0);
                 lastUserKeyEventTime.set(0);
                 logger.info("scenario executing paused cause of user activity ({}) due to {}",
-                        l,
+                        lastUserActivityTime,
                         CommonUtil.localTimeString(System.currentTimeMillis()
                                 + TimeUnit.MILLISECONDS.convert(settings.userActivityDelay(), TimeUnit.SECONDS)));
                 TimeUnit.SECONDS.sleep(settings.userActivityDelay());
             }
             if (userActivityObserver.wasUserActivity()) throw new UserActionDetectedException();
             final WaitingList setWaitingList = waitingList.get();
-            if (!verifyWaitingList(setWaitingList) && System.currentTimeMillis() < waitUntil.longValue()) {
+            final boolean waitingTimeIsOut = System.currentTimeMillis() > waitUntil.longValue();
+            if (!verifyWaitingList(setWaitingList) && !waitingTimeIsOut) {
                 logger.info("waiting list has not passed checks and waiting time does not expired - interrupt routine task");
                 cache.invalidate();
                 return;
+            } else if (waitingTimeIsOut) {
+                makeShot("waiting has done by timeout - continue performing activities");
+                waitingList.set(null);
+                waitUntil.set(0);
             } else if (setWaitingList != null) {
                 logger.info("waiting has done - continue performing activities");
                 waitingList.set(null);
@@ -100,9 +104,8 @@ class RoutineScenarioProcessor implements Runnable {
                 final int activityRepeated = repeatableCounter.updateAndGet(operand ->
                         currentIndex == repeatableIndex.getAndSet(currentIndex) ? operand + 1 : 0);
                 if (!activity.isRepeatable() && activityRepeated >= settings.maxRepeatableCount()) {
-                    throw makeShotAndGetException("Activity \"" + activity.getTitle() + "\" (" + currentIndex + ")" +
-                            " was executed " + settings.maxRepeatableCount() + " times in a row but it's not marked as repeatable." +
-                            " Maybe you've missed something. Interrupt scenario execution");
+                    throw makeShotAndGetException(UiElement.maxRepeatableCountExceeded,
+                            activity.getTitle(), currentIndex, settings.maxRepeatableCount());
                 }
                 if (activity.producesFragileState()) {
                     logger.warn("Activity {} (\"{}\") marked as produces a fragile state. So try to perform next round gently.",
@@ -133,14 +136,14 @@ class RoutineScenarioProcessor implements Runnable {
             }
             cache.invalidate();
             if (wasPerformed < 0) {
-                throw makeShotAndGetException("No one activity was performed. Maybe you've missed something. Interrupt scenario execution");
+                throw makeShotAndGetException(UiElement.noOneActivityWasPerformed);
             }
             if (wasPerformed < activities.size() - 1) {
                 logger.info("routine task done");
                 return;
             }
             if (scenario.getType() == ScenarioType.oneTime) {
-                throw new UserMessageException("Scenario \"" + scenario.getTitle() + "\" done its job");
+                throw new UserMessageException(UiElement.scenarioDone, scenario.getTitle());
             }
             if (scenario.getType() == ScenarioType.repeatable) {
                 final Map<ScenarioDataType, String> data = scenario.getData().orElse(Map.of());
@@ -170,13 +173,17 @@ class RoutineScenarioProcessor implements Runnable {
         }
     }
 
-    private UserMessageException makeShotAndGetException(final String message) {
+    private UserMessageException makeShotAndGetException(final UiElement uiElement, final Object... args) {
+        makeShot(uiElement.forDefaultLocale(args));
+        return new UserMessageException(uiElement, args);
+    }
+
+    private void makeShot(final String message) {
         final String fileNameForWrongShot = CommonUtil.getFileNameForWrongShot();
         logger.warn("{} ({})", message, fileNameForWrongShot);
         CommonUtil.saveImage(win32Adapter.takeScreenShot(),
                 CommonUtil.getPathForWrongShots(workingDirectory),
                 fileNameForWrongShot);
-        return new UserMessageException(message);
     }
 
     private boolean verifyWaitingList(final WaitingList waitingList) throws InterruptedException {

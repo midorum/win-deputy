@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
@@ -33,7 +34,8 @@ class WaitingListEditPane extends JPanel implements SupplierThrowing<WaitingList
         timeoutField = new IntegerTextField(0, Integer.MAX_VALUE);
         timeoutField.setText("" + waitingList.getTimeout());
         final JPanel timeoutPanel = new JPanel();
-        SwingUtil.putComponentsToHorizontalGrid(timeoutPanel, new JLabel("Timeout, seconds"), timeoutField);
+        SwingUtil.putComponentsToHorizontalGrid(timeoutPanel,
+                new JLabel(UiElement.timeoutInSecondsLabel.forUserLocale()), timeoutField);
         SwingUtil.putComponentsToVerticalGrid(this,
                 -1,
                 waitingListPane,
@@ -55,7 +57,7 @@ class WaitingListEditPane extends JPanel implements SupplierThrowing<WaitingList
 
     private void deleteCheck(final WaitingWrapperPane checkPane) {
         if (wrapperPaneList.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last check from activity");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastCheck);
             return;
         }
         wrapperPaneList.remove(checkPane);
@@ -101,14 +103,14 @@ class WaitingListEditPane extends JPanel implements SupplierThrowing<WaitingList
             final Waiting waiting = next.get();
             if (!WaitingList.validateListItem(waiting)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal waiting");
+                throw new IllegalInputException(UiElement.illegalWaiting);
             }
             next.setBorder(null);
             waitingList.add(waiting);
         }
         if (!WaitingList.validateList(waitingList)) {
             waitingListPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal checks");
+            throw new IllegalInputException(UiElement.illegalWaitingList);
         }
         waitingListPane.setBorder(null);
         return waitingList;
@@ -116,15 +118,15 @@ class WaitingListEditPane extends JPanel implements SupplierThrowing<WaitingList
 
     private long validateAndGetTimeout() throws IllegalInputException {
         final String timeoutText = timeoutField.getText();
-        if(timeoutText == null || timeoutText.isBlank()) {
+        if (timeoutText == null || timeoutText.isBlank()) {
             timeoutField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Invalid timeout value (should be integer number)");
+            throw new IllegalInputException(UiElement.illegalTimeoutValue);
         }
         timeoutField.setBorder(null);
         try {
             return Long.parseLong(timeoutText);
         } catch (NumberFormatException e) {
-            throw new IllegalInputException("Invalid timeout value (should be integer number)", e);
+            throw new IllegalInputException(e, UiElement.illegalTimeoutValue2, timeoutText);
         }
     }
 
@@ -144,7 +146,7 @@ class WaitingListEditPane extends JPanel implements SupplierThrowing<WaitingList
         private JPanel createButtonsPane() {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-            panel.add(new JLabel("Waiting"));
+            panel.add(new JLabel(UiElement.waitingLabel.forUserLocale()));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
@@ -154,25 +156,25 @@ class WaitingListEditPane extends JPanel implements SupplierThrowing<WaitingList
 
         private Button createAddButton() {
             final Button btn = new Button("+");
-            btn.addActionListener(e -> addCheckBelow(this));
+            btn.addActionListener(_ -> addCheckBelow(this));
             return btn;
         }
 
         private Button createDeleteButton() {
             final Button btn = new Button("x");
-            btn.addActionListener(e -> deleteCheck(this));
+            btn.addActionListener(_ -> deleteCheck(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
             final Button btn = new Button("^");
-            btn.addActionListener(e -> moveCheckUp(this));
+            btn.addActionListener(_ -> moveCheckUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
             final Button btn = new Button("v");
-            btn.addActionListener(e -> moveCheckDown(this));
+            btn.addActionListener(_ -> moveCheckDown(this));
             return btn;
         }
 

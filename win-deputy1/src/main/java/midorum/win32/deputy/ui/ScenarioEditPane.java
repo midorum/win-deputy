@@ -2,6 +2,7 @@ package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
 import midorum.win32.deputy.common.CommonUtil;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
@@ -44,12 +45,12 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         scrollPane.setWheelScrollingEnabled(true);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 //        scrollPane.getViewport().addChangeListener(e -> System.out.println("Viewport changed: " + e));
-        scenarioTypeEditPane = new ScenarioTypeEditPane(scenarioType, data, state);
+        scenarioTypeEditPane = new ScenarioTypeEditPane(scenarioType, data);
         SwingUtil.putComponentsToVerticalGrid(this,
                 new double[]{0.0, 0.0, 0.0, 0.0, 0.5, 0.0},
-                new JLabel("Title"),
+                new JLabel(UiElement.titleLabel.forUserLocale()),
                 titleField,
-                new JLabel("Description"),
+                new JLabel(UiElement.descriptionLabel.forUserLocale()),
                 descriptionField,
                 scrollPane,
                 scenarioTypeEditPane);
@@ -76,7 +77,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
     private void deleteActivity(final ActivityWrapperPane activityPane) {
         if (activities.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last activity from scenario");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastActivity.forUserLocale());
             return;
         }
         activities.remove(activityPane);
@@ -101,7 +102,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
     private boolean canIgnoreActivity() {
         if (activities.stream().filter(checkWrapperPane -> !checkWrapperPane.isIgnore()).findAny().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "You cannot ignore last activity from scenario");
+            JOptionPane.showMessageDialog(this, UiElement.cannotIgnoreLastActivity);
             return false;
         }
         return true;
@@ -130,7 +131,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         final String scenarioTitle = titleField.getText();
         if (scenarioTitle == null || scenarioTitle.isBlank()) {
             titleField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Scenario title cannot be empty");
+            throw new IllegalInputException(UiElement.scenarioTitleCannotBeEmpty);
         }
         titleField.setBorder(null);
         return scenarioTitle;
@@ -142,14 +143,14 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             final Activity activity = next.get();
             if (!Scenario.validateActivityListItem(activity)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal activity");
+                throw new IllegalInputException(UiElement.illegalActivity);
             }
             next.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 2));
             activitiesList.add(activity);
         }
         if (!Scenario.validateActivities(activitiesList)) {
             gridPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal activities");
+            throw new IllegalInputException(UiElement.illegalActivities);
         }
         gridPane.setBorder(null);
         return activitiesList;
@@ -159,7 +160,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         final ScenarioType scenarioType = scenarioTypeEditPane.getScenarioType();
         if (scenarioType == null) {
             scenarioTypeEditPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Scenario type cannot be empty");
+            throw new IllegalInputException(UiElement.scenarioTypeCannotBeEmpty);
         }
         scenarioTypeEditPane.setBorder(null);
         return scenarioType;
@@ -213,7 +214,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         private JPanel createActivityViewButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-            panel.add(new JLabel("Activity viewing"));
+            panel.add(new JLabel(UiElement.activityViewingLabel.forUserLocale()));
             panel.add(createEditActivityButton());
             panel.add(createAddButton());
             if (components != null) for (final Component c : components) panel.add(c);
@@ -223,7 +224,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         private JPanel createActivityEditButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-            panel.add(new JLabel("Activity editing"));
+            panel.add(new JLabel(UiElement.activityEditingLabel.forUserLocale()));
             panel.add(createViewActivityButton());
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
@@ -236,13 +237,13 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private Button createAddButton() {
             final Button btn = new Button("+");
-            btn.addActionListener(e -> {
+            btn.addActionListener(_ -> {
                 try {
                     final Activity activity = activitySupplier.get();
                     fillActivityContainer(activity);
                     addActivityBelow(this);
                 } catch (IllegalInputException ex) {
-                    state.getUtilities().reportIllegalState("You should fulfill this activity properly before adding a new one");
+                    state.getUtilities().reportIllegalState(UiElement.shouldFulfillActivityBeforeAdding);
                 }
             });
             return btn;
@@ -250,13 +251,13 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private Button createAddCopyButton() {
             final Button btn = new Button("++");
-            btn.addActionListener(e -> {
+            btn.addActionListener(_ -> {
                 try {
                     final Activity activity = activitySupplier.get();
                     fillActivityContainer(activity);
                     addActivityCopyBelow(this, activity);
                 } catch (IllegalInputException ex) {
-                    state.getUtilities().reportIllegalState("You should fulfill this activity properly before adding a new one");
+                    state.getUtilities().reportIllegalState(UiElement.shouldFulfillActivityBeforeAdding);
                 }
             });
             return btn;
@@ -264,30 +265,30 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private Button createDeleteButton() {
             final Button btn = new Button("x");
-            btn.addActionListener(e -> deleteActivity(this));
+            btn.addActionListener(_ -> deleteActivity(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
             final Button btn = new Button("^");
-            btn.addActionListener(e -> moveActivityUp(this));
+            btn.addActionListener(_ -> moveActivityUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
             final Button btn = new Button("v");
-            btn.addActionListener(e -> moveActivityDown(this));
+            btn.addActionListener(_ -> moveActivityDown(this));
             return btn;
         }
 
         private Button createEditActivityButton() {
             final Button btn = new Button("E");
-            btn.addActionListener(e -> {
+            btn.addActionListener(_ -> {
                 try {
                     final Activity activity = activitySupplier.get();
                     fillActivityContainer(activity, true);
                 } catch (IllegalInputException ex) {
-                    state.getUtilities().reportIllegalState("You should fulfill this activity properly before editing");
+                    state.getUtilities().reportIllegalState(UiElement.shouldFulfillActivityBeforeEditing);
                 }
             });
             return btn;
@@ -295,12 +296,12 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private Component createViewActivityButton() {
             final Button btn = new Button("A");
-            btn.addActionListener(e -> {
+            btn.addActionListener(_ -> {
                 try {
                     final Activity activity = activitySupplier.get();
                     fillActivityContainer(activity, false);
                 } catch (IllegalInputException ex) {
-                    state.getUtilities().reportIllegalState("You should fulfill this activity properly before viewing");
+                    state.getUtilities().reportIllegalState(UiElement.shouldFulfillActivityBeforeViewing);
                 }
             });
             return btn;
@@ -308,10 +309,10 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private JCheckBox createIgnoreCheckBox(final boolean ignore) {
             final JCheckBox checkBox;
-            checkBox = new JCheckBox("ignore");
+            checkBox = new JCheckBox(UiElement.ignoreLabel.forUserLocale());
             checkBox.setSelected(ignore);
-            checkBox.addActionListener(e -> {
-                if(checkBox.isSelected() && !canIgnoreActivity()) {
+            checkBox.addActionListener(_ -> {
+                if (checkBox.isSelected() && !canIgnoreActivity()) {
                     checkBox.setSelected(false);
                 }
             });
@@ -339,7 +340,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         private final ArrayList<ScenarioDataTypePane> scenarioDataTypeList;
         private final JPanel scenarioDataTypePane;
 
-        public ScenarioTypeEditPane(final ScenarioType scenarioType, final Map<ScenarioDataType, String> data, final State state) {
+        public ScenarioTypeEditPane(final ScenarioType scenarioType, final Map<ScenarioDataType, String> data) {
             this.checkTypeComboBox = createScenarioTypeComboBox();
             this.scenarioDataTypeList = new ArrayList<>();
             this.scenarioDataTypePane = new JPanel();
@@ -358,7 +359,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
         private JComboBox<ScenarioType> createScenarioTypeComboBox() {
             final JComboBox<ScenarioType> comboBox = new JComboBox<>(ScenarioType.values());
             comboBox.setSelectedIndex(-1);
-            comboBox.addActionListener((e) -> {
+            comboBox.addActionListener(_ -> {
                 final ScenarioType selectedItem = (ScenarioType) comboBox.getSelectedItem();
                 if (selectedItem != null) {
                     scenarioDataTypeList.clear();
@@ -389,7 +390,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
         private void deleteData(final ScenarioDataTypePane scenarioDataTypePane) {
             if (scenarioDataTypeList.size() == 1) {
-                JOptionPane.showMessageDialog(this, "You cannot delete last scenario data");
+                JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastScenarioData.forUserLocale());
                 return;
             }
             scenarioDataTypeList.remove(scenarioDataTypePane);
@@ -429,14 +430,14 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
                 final String scenarioDataValue = next.getScenarioDataValue();
                 if (!Scenario.validateScenarioDataEntry(scenarioDataType, scenarioDataValue)) {
                     next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                    throw new IllegalInputException("Illegal scenario data");
+                    throw new IllegalInputException(UiElement.illegalScenarioData);
                 }
                 next.setBorder(null);
                 data.put(scenarioDataType, scenarioDataValue);
             }
             if (!Scenario.validateScenarioData(getScenarioType(), data)) {
                 scenarioDataTypePane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal scenario data");
+                throw new IllegalInputException(UiElement.illegalScenarioData);
             }
             scenarioDataTypePane.setBorder(null);
             return data;
@@ -472,7 +473,7 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
             private JComboBox<ScenarioDataType> createDataTypeComboBox(final List<ScenarioDataType> availableDataTypes) {
                 final JComboBox<ScenarioDataType> comboBox = new JComboBox<>(availableDataTypes.toArray(new ScenarioDataType[]{}));
                 comboBox.setSelectedIndex(-1);
-                comboBox.addActionListener((e) -> {
+                comboBox.addActionListener(_ -> {
                     final ScenarioDataType selectedItem = (ScenarioDataType) comboBox.getSelectedItem();
                     if (selectedItem != null) fillSourceTypeEditGrid(selectedItem, null);
                 });
@@ -503,25 +504,25 @@ class ScenarioEditPane extends JPanel implements SupplierThrowing<Scenario, Ille
 
             private Button createAddButton() {
                 final Button btn = new Button("+");
-                btn.addActionListener(e -> addDataBelow(this));
+                btn.addActionListener(_ -> addDataBelow(this));
                 return btn;
             }
 
             private Button createDeleteButton() {
                 final Button btn = new Button("x");
-                btn.addActionListener(e -> deleteData(this));
+                btn.addActionListener(_ -> deleteData(this));
                 return btn;
             }
 
             private Button createMoveUpButton() {
                 final Button btn = new Button("^");
-                btn.addActionListener(e -> moveDataUp(this));
+                btn.addActionListener(_ -> moveDataUp(this));
                 return btn;
             }
 
             private Button createMoveDownButton() {
                 final Button btn = new Button("v");
-                btn.addActionListener(e -> moveDataDown(this));
+                btn.addActionListener(_ -> moveDataDown(this));
                 return btn;
             }
 

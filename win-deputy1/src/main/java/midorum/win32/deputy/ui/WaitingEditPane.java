@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.Check;
 import midorum.win32.deputy.model.IllegalInputException;
 import midorum.win32.deputy.model.Waiting;
@@ -56,7 +57,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
 
     private void deleteCheck(final CheckWrapperPane checkPane) {
         if (checks.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last check");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastCheck.forUserLocale());
             return;
         }
         checks.remove(checkPane);
@@ -81,7 +82,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
 
     private boolean canIgnoreCheck() {
         if (checks.stream().filter(checkWrapperPane -> !checkWrapperPane.isIgnore()).findAny().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "You cannot ignore last check from waiting");
+            JOptionPane.showMessageDialog(this, UiElement.cannotIgnoreLastCheck);
             return false;
         }
         return true;
@@ -107,7 +108,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         final String description = descriptionField.getText();
         if (description == null || description.isBlank()) {
             descriptionField.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Waiting should have some description");
+            throw new IllegalInputException(UiElement.waitingShouldHaveDescription);
         }
         descriptionField.setBorder(null);
         return description;
@@ -119,14 +120,14 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
             final Check check = next.get();
             if (!Waiting.validateCheckListItem(check)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal check");
+                throw new IllegalInputException(UiElement.illegalCheck);
             }
             next.setBorder(null);
             checkList.add(check);
         }
         if (!Waiting.validateChecks(checkList)) {
             checksPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal checks");
+            throw new IllegalInputException(UiElement.illegalChecks);
         }
         checksPane.setBorder(null);
         return checkList;
@@ -156,7 +157,7 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
         private JPanel createButtonsPane(final Component... components) {
             final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             panel.setSize(panel.getPreferredSize());
-            panel.add(new JLabel("Check"));
+            panel.add(new JLabel(UiElement.checkLabel.forUserLocale()));
             panel.add(createMoveUpButton());
             panel.add(createMoveDownButton());
             panel.add(createAddButton());
@@ -167,32 +168,32 @@ class WaitingEditPane extends JPanel implements SupplierThrowing<Waiting, Illega
 
         private Button createAddButton() {
             final Button btn = new Button("+");
-            btn.addActionListener(e -> addCheckBelow(this));
+            btn.addActionListener(_ -> addCheckBelow(this));
             return btn;
         }
 
         private Button createDeleteButton() {
             final Button btn = new Button("x");
-            btn.addActionListener(e -> deleteCheck(this));
+            btn.addActionListener(_ -> deleteCheck(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
             final Button btn = new Button("^");
-            btn.addActionListener(e -> moveCheckUp(this));
+            btn.addActionListener(_ -> moveCheckUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
             final Button btn = new Button("v");
-            btn.addActionListener(e -> moveCheckDown(this));
+            btn.addActionListener(_ -> moveCheckDown(this));
             return btn;
         }
 
         private JCheckBox createIgnoreCheckBox(final boolean ignore) {
-            final JCheckBox checkBox = new JCheckBox("ignore");
+            final JCheckBox checkBox = new JCheckBox(UiElement.ignoreLabel.forUserLocale());
             checkBox.setSelected(ignore);
-            checkBox.addActionListener(e -> {
+            checkBox.addActionListener(_ -> {
                 if (checkBox.isSelected() && !canIgnoreCheck()) {
                     checkBox.setSelected(false);
                 }

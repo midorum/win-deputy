@@ -1,6 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.function.SupplierThrowing;
+import midorum.win32.deputy.i18n.UiElement;
 import midorum.win32.deputy.model.*;
 
 import javax.swing.*;
@@ -36,7 +37,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
 
     private JComboBox<CommandType> createCommandTypeComboBox() {
         final JComboBox<CommandType> commandType = new JComboBox<>(CommandType.values());
-        commandType.addActionListener((e) -> {
+        commandType.addActionListener(_ -> {
             final CommandType selectedItem = (CommandType) commandType.getSelectedItem();
             if (selectedItem != null) {
                 commandDataList.clear();
@@ -70,7 +71,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
 
     private void deleteData(final CommandDataTypePane checkDataTypePane) {
         if (commandDataList.size() == 1) {
-            JOptionPane.showMessageDialog(this, "You cannot delete last command data");
+            JOptionPane.showMessageDialog(this, UiElement.cannotDeleteLastCommandData);
             return;
         }
         commandDataList.remove(checkDataTypePane);
@@ -109,7 +110,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         final CommandType commandType = (CommandType) commandTypeComboBox.getSelectedItem();
         if (!Command.validateCommandType(commandType)) {
             commandTypeComboBox.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal command type");
+            throw new IllegalInputException(UiElement.illegalCommandType);
         }
         commandTypeComboBox.setBorder(null);
         return commandType;
@@ -122,14 +123,14 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
             final String commandDataValue = next.getCommandDataValue();
             if (!Command.validateCommandDataEntry(commandDataType, commandDataValue)) {
                 next.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                throw new IllegalInputException("Illegal command data");
+                throw new IllegalInputException(UiElement.illegalCommandData);
             }
             next.setBorder(null);
             data.put(commandDataType, commandDataValue);
         }
         if (!Command.validateCommandData(commandType, data)) {
             commandDataPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            throw new IllegalInputException("Illegal command data");
+            throw new IllegalInputException(UiElement.illegalCommandData);
         }
         commandDataPane.setBorder(null);
         return data;
@@ -165,7 +166,7 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
         private JComboBox<CommandDataType> createDataTypeComboBox(final List<CommandDataType> availableDataTypes) {
             final JComboBox<CommandDataType> comboBox = new JComboBox<>(availableDataTypes.toArray(new CommandDataType[]{}));
             comboBox.setSelectedIndex(-1);
-            comboBox.addActionListener((e) -> {
+            comboBox.addActionListener(_ -> {
                 final CommandDataType selectedItem = (CommandDataType) comboBox.getSelectedItem();
                 if (selectedItem != null) fillSourceTypeEditGrid(selectedItem, null);
             });
@@ -196,25 +197,25 @@ class CommandEditPane extends JPanel implements SupplierThrowing<Command, Illega
 
         private Button createAddButton() {
             final Button btn = new Button("+");
-            btn.addActionListener(e -> addDataBelow(this));
+            btn.addActionListener(_ -> addDataBelow(this));
             return btn;
         }
 
         private Button createDeleteButton() {
             final Button btn = new Button("x");
-            btn.addActionListener(e -> deleteData(this));
+            btn.addActionListener(_ -> deleteData(this));
             return btn;
         }
 
         private Button createMoveUpButton() {
             final Button btn = new Button("^");
-            btn.addActionListener(e -> moveDataUp(this));
+            btn.addActionListener(_ -> moveDataUp(this));
             return btn;
         }
 
         private Button createMoveDownButton() {
             final Button btn = new Button("v");
-            btn.addActionListener(e -> moveDataDown(this));
+            btn.addActionListener(_ -> moveDataDown(this));
             return btn;
         }
 
