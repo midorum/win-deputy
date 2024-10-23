@@ -1,8 +1,9 @@
 package midorum.win32.deputy.common;
 
 import com.midorum.win32api.facade.*;
-import com.midorum.win32api.facade.Either;
+import com.midorum.win32api.facade.exception.Win32ApiException;
 import com.midorum.win32api.struct.PointInt;
+import dma.flow.Either;
 import midorum.win32.deputy.model.UserActionDetectedException;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class GuardedWin32Adapter extends Win32Adapter {
         return super.getWindowByPoint(point);
     }
 
-    public Either<List<IProcess>> listProcessesWithName(final String name) {
+    public Either<List<IProcess>, Win32ApiException> listProcessesWithName(final String name) {
         //FIXME we have to check user activity so early because this method returns a common interface; we need return an adapter here
         if (userActivityObserver.wasUserActivity()) throw new UserActionDetectedException();
         return super.listProcessesWithName(name);

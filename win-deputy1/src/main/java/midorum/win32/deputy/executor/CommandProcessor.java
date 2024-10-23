@@ -4,6 +4,7 @@ import com.midorum.win32api.facade.*;
 import com.midorum.win32api.facade.exception.Win32ApiException;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
+import dma.flow.Either;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
@@ -98,7 +99,8 @@ public class CommandProcessor {
 
     private void keyboardType(final Map<CommandDataType, String> data) throws Win32ApiException {
         final String keyboardTypeTextData = data.get(CommandDataType.keyboardTypeText);
-        if (keyboardTypeTextData == null) throw new UserMessageException(UiElement.cannotGetDataType, "keyboardTypeText");
+        if (keyboardTypeTextData == null)
+            throw new UserMessageException(UiElement.cannotGetDataType, "keyboardTypeText");
         final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
         final String keyboardLayoutData = data.get(CommandDataType.keyboardLayout);
         if (keyboardLayoutData != null) {
@@ -114,7 +116,8 @@ public class CommandProcessor {
 
     private void keyboardHitKey(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
         final String keyboardKeyStrokeData = data.get(CommandDataType.keyboardKeyStroke);
-        if (keyboardKeyStrokeData == null) throw new UserMessageException(UiElement.cannotGetDataType, "keyboardKeyStroke");
+        if (keyboardKeyStrokeData == null)
+            throw new UserMessageException(UiElement.cannotGetDataType, "keyboardKeyStroke");
         final String keyboardKeyStrokeDelayValue = data.get(CommandDataType.keyboardKeyStrokeDelay);
         final long delay = keyboardKeyStrokeDelayValue != null ? Long.parseLong(keyboardKeyStrokeDelayValue) : 0L;
         final HotKey hotKey = HotKey.valueOf(keyboardKeyStrokeData);
@@ -153,7 +156,7 @@ public class CommandProcessor {
         final String windowClassNameData = data.get(CommandDataType.windowClassName);
         final Optional<IWindow> window = cache.getWindow(windowTitleData, windowClassNameData);
         if (window.isEmpty()) return false;
-        final Optional<Either<IProcess>> maybeProcess = window.map(IWindow::getProcess);
+        final Optional<Either<IProcess, Win32ApiException>> maybeProcess = window.map(IWindow::getProcess);
         if (maybeProcess.isEmpty()) return false;
         final IProcess process = maybeProcess.get().getOrHandleError(e -> {
             logger.error(() -> "cannot obtain process for window with title \""

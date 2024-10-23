@@ -1,7 +1,7 @@
 package midorum.win32.deputy.ui;
 
+import dma.flow.Either;
 import midorum.win32.deputy.common.CommonUtil;
-import midorum.win32.deputy.common.Either;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.i18n.I18nResourcesProvider;
 import midorum.win32.deputy.i18n.UiElement;
@@ -198,8 +198,8 @@ public class MainForm implements TaskDispatcher {
 
     @Override
     public void applySettings() {
-       loadAndApplySettings();
-       showSettings();
+        loadAndApplySettings();
+        showSettings();
     }
 
     @Override

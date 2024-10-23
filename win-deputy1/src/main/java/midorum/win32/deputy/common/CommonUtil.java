@@ -6,21 +6,15 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.midorum.win32api.struct.PointInt;
+import dma.flow.Either;
 import midorum.win32.deputy.model.Scenario;
-import midorum.win32.deputy.model.Settings;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.JarURLConnection;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -97,7 +91,7 @@ public final class CommonUtil {
     }
 
     public static Either<File, IOException> saveImage(final BufferedImage bufferedImage, final String path, final String name) {
-        return Either.value(() -> new FileServiceProvider()
+        return Either.valueFrom(() -> new FileServiceProvider()
                         .withFile(path, name, getImageFormat())
                         .writeImage(bufferedImage))
                 .orException(() -> new IOException("error while saving image: " + path + File.separator + name));
@@ -108,7 +102,7 @@ public final class CommonUtil {
     }
 
     public static Either<File, IOException> saveScenario(final Scenario scenario, final String path, final String name) {
-        return Either.value(() -> new FileServiceProvider()
+        return Either.valueFrom(() -> new FileServiceProvider()
                         .withFile(path, name, "wds")
                         .writeJson(scenario))
                 .orException(() -> new IOException("error while saving scenario: " + path + File.separator + name));
@@ -120,7 +114,7 @@ public final class CommonUtil {
                 .registerModule(new Jdk8Module())
                 .registerModule(new JavaTimeModule());
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return Either.value(() -> objectMapper.readValue(file, Scenario.class))
+        return Either.valueFrom(() -> objectMapper.readValue(file, Scenario.class))
                 .orException(() -> new IOException("error while loading scenario: " + file.getAbsolutePath()));
     }
 

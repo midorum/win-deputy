@@ -1,7 +1,7 @@
 package midorum.win32.deputy.model;
 
 import dma.file.v2.FileUtil;
-import midorum.win32.deputy.common.Either;
+import dma.flow.Either;
 import midorum.win32.deputy.i18n.I18nResourcesProvider;
 
 import java.io.IOException;
@@ -45,7 +45,7 @@ public record Settings(
     }
 
     public static Either<Settings, IOException> loadFromFile() {
-        return Either.value(() -> FileUtil.withText(SETTINGS_FILE_NAME).asReader(reader -> {
+        return Either.valueFrom(() -> FileUtil.withText(SETTINGS_FILE_NAME).asReader(reader -> {
             Properties appProps = new Properties();
             appProps.load(reader);
             return new Settings(
