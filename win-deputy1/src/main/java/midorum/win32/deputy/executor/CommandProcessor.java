@@ -108,9 +108,8 @@ public class CommandProcessor {
                     .orElseThrow(() -> new UserMessageException(UiElement.cannotParseKeyboardLayout, keyboardLayoutData)));
         }
         window.getKeyboard().type(keyboardTypeTextData, (order, virtualCode) -> {
-            logger.trace("put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
-            final long lastUserKeyEventTime = userActivityObserver.putSelfKeyCode(virtualCode);
-            if (lastUserKeyEventTime > 0) throw new UserActionDetectedException();
+            logger.trace("[typing] put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
+            if (userActivityObserver.wasUserActivity(virtualCode)) throw new UserActionDetectedException();
         });
     }
 
@@ -123,9 +122,8 @@ public class CommandProcessor {
         final HotKey hotKey = HotKey.valueOf(keyboardKeyStrokeData);
         final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
         window.getKeyboard().enterHotKey(hotKey, delay, (order, virtualCode) -> {
-            logger.trace("put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
-            final long lastUserKeyEventTime = userActivityObserver.putSelfKeyCode(virtualCode);
-            if (lastUserKeyEventTime > 0) throw new UserActionDetectedException();
+            logger.trace("[hotkey] put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
+            if (userActivityObserver.wasUserActivity(virtualCode)) throw new UserActionDetectedException();
         });
     }
 

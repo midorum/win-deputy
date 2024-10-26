@@ -1,5 +1,6 @@
 package midorum.win32.deputy.ui;
 
+import com.midorum.win32api.facade.HotKey;
 import com.midorum.win32api.hook.GlobalKeyHook;
 import com.midorum.win32api.hook.KeyHookHelper;
 import com.midorum.win32api.win32.MsLcid;
@@ -119,11 +120,11 @@ class SourceTypeEditPane extends JPanel implements Supplier<String> {
         final GlobalKeyHook.KeyEvent eventToBreakCapturing = new KeyHookHelper.KeyEventBuilder().virtualKey(Win32VirtualKey.VK_ESCAPE).withControl().build();
         final String previousValue = get();
         final Color foregroundColor = valueField.getForeground();
-        setValueField(UiElement.enterDesiredKeystrokeTip.forUserLocale(eventToBreakCapturing.toPrettyString()));
+        setValueField(UiElement.enterDesiredKeystrokeTip.forUserLocale(HotKey.fromKeyEvent(eventToBreakCapturing).stringify()));
         valueField.setForeground(Color.RED);
         KeyHookHelper.getInstance().captureOnce(eventToBreakCapturing, KeyHookHelper.KeyEventComparator.byAltControlShiftCode,
                 keyEvent -> {
-                    setValueField(keyEvent.toPrettyString());
+                    setValueField(HotKey.fromKeyEvent(keyEvent).stringify());
                     valueField.setForeground(foregroundColor);
                 },
                 _ -> {

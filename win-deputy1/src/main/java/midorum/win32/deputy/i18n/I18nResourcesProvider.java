@@ -26,12 +26,10 @@ public class I18nResourcesProvider {
     private final AtomicReference<Properties> userLocaleValues = new AtomicReference<>();
 
     private I18nResourcesProvider() {
-        logger.error(">>> I18nResourcesProvider init");
         defaultLocaleValues = loadFromFile(DEFAULT_LOCALE).getOrHandleError(e -> {
             logger.error("cannot load default locale", e);
             return new Properties();
         });
-        logger.error(">>> I18nResourcesProvider default locale loaded");
         userLocaleValues.set(defaultLocaleValues);
     }
 

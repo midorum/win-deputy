@@ -30,10 +30,10 @@ public class UserActivityObserver {
         final int adjustedCode = getAdjustedCode(event);
         if (poll == null || adjustedCode != poll) {
             lastUserKeyEventTime.set(System.currentTimeMillis());
-            logger.trace(() -> "poll: " + poll
-                    + " event virtualCode: " + adjustedCode
-                    + " set lastUserKeyEventTime: " + lastUserKeyEventTime
-                    + " " + CommonUtil.localTimeString(lastUserKeyEventTime.get()));
+            logger.trace(() -> "polled self code [" + poll
+                    + "] != event virtualCode [" + adjustedCode
+                    + "]: set lastUserKeyEventTime: " + lastUserKeyEventTime
+                    + " [" + CommonUtil.localTimeString(lastUserKeyEventTime.get()) + "]");
         }
     }
 
@@ -48,19 +48,21 @@ public class UserActivityObserver {
                 : eventCode;
     }
 
-    public long putSelfKeyCode(final int virtualCode) {
-        final long l = lastUserKeyEventTime.get();
-        if (l > 0) return l;
-        queue.offer(virtualCode);
-        return lastUserKeyEventTime.get();
+    public boolean wasUserActivity() {
+        return lastUserKeyEventTime.get() > 0;
+    }
+
+    public boolean wasUserActivity(final int virtualCode) {
+        final boolean wasUserActivity = wasUserActivity();
+        if (!wasUserActivity) {
+            queue.offer(virtualCode);
+            return false;
+        }
+        return true;
     }
 
     public long getLastUserKeyEventTime() {
         return lastUserKeyEventTime.get();
-    }
-
-    public boolean wasUserActivity() {
-        return lastUserKeyEventTime.get() > 0;
     }
 
     public void reset() {

@@ -176,7 +176,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
                     } else {
                         state.getUtilities().reportThrowable(throwable, UiElement.errorOccurredWhileExecutingScenario);
                     }
-                    unlockForm();
+                    unhookAndUnlockForm();
                 });
             }
         });
@@ -187,11 +187,7 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         final Button btn = new Button(UiElement.stopScenarioButtonText.forUserLocale());
         btn.addActionListener(_ -> {
             executor.cancelCurrentTask();
-            final GlobalKeyHook cancelKeyHook = this.cancelKeyHook.get();
-            if (cancelKeyHook != null) {
-                cancelKeyHook.unhook();
-            }
-            unlockForm();
+            unhookAndUnlockForm();
         });
         return btn;
     }
@@ -249,15 +245,26 @@ public class ScenarioViewerForm extends JPanel implements Displayable {
         showCentralButton(false);
     }
 
+    private void unhookAndUnlockForm() {
+        final GlobalKeyHook cancelKeyHook = this.cancelKeyHook.get();
+        if (cancelKeyHook != null) {
+            cancelKeyHook.unhook();
+        }
+        unlockForm();
+    }
+
     private GlobalKeyHook setCancelTaskHook() {
         final GlobalKeyHook.KeyEvent stopKey = new KeyHookHelper.KeyEventBuilder()
                 .virtualKey(Win32VirtualKey.VK_S).withControl().withShift().build();
         final KeyHookHelper keyHookHelper = KeyHookHelper.getInstance();
-        return keyHookHelper.setGlobalHook(
+        final String hookId = Long.toString(System.currentTimeMillis());
+        return keyHookHelper.setGlobalHook(hookId,
                 keyEvent -> {
-                    executorLogger.trace(() -> "GlobalHook: keyEvent: " + keyEvent + " " + keyEvent.toPrettyString());
+                    executorLogger.trace(() -> "GlobalKeyHook[" + hookId + "] keyEvent: " + keyEvent
+                            + " " + keyEvent.toPrettyString());
                     userActivityObserver.checkKeyEvent(keyEvent);
-                    final boolean isNeedStop = KeyHookHelper.KeyEventComparator.byAltControlShiftCode.compare(stopKey, keyEvent) == 0;
+                    final boolean isNeedStop = KeyHookHelper.KeyEventComparator.byAltControlShiftCode
+                            .compare(stopKey, keyEvent) == 0;
                     if (isNeedStop && executor.cancelCurrentTask()) {
                         unlockForm();
                     }
