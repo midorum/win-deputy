@@ -7,7 +7,6 @@ import com.midorum.win32api.facade.exception.Win32ApiException;
 import midorum.win32.deputy.common.CommonUtil;
 import midorum.win32.deputy.common.FileServiceProvider;
 import midorum.win32.deputy.common.GuardedWin32Adapter;
-import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.IExecutor;
 import midorum.win32.deputy.model.Settings;
 import midorum.win32.deputy.model.Stamp;

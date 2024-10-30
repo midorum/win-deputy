@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>win-deputy1</artifactId>
-    <version>0.1.2</version>
+    <version>0.1.3</version>
 
     <properties>
         <project.organization.name>midorum</project.organization.name>
@@ -23,8 +23,8 @@
         <maven.compiler.target>22</maven.compiler.target>
         <maven.jar.plugin.version>3.4.2</maven.jar.plugin.version>
         <maven.shade.plugin.version>3.6.0</maven.shade.plugin.version>
-        <dma-util.version>0.3.13++time-measurer-2.0</dma-util.version>
-        <midorum.Win32API.version>0.4.0</midorum.Win32API.version>
+        <dma-util.version>0.4.0</dma-util.version>
+        <midorum.Win32API.version>0.4.1</midorum.Win32API.version>
         <log4j.version>2.20.0</log4j.version>
         <jackson.version>2.17.2</jackson.version>
         <launch4j.maven.plugin.version>2.5.1</launch4j.maven.plugin.version>

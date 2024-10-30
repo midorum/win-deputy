@@ -3,15 +3,12 @@ package midorum.win32.deputy.executor;
 import dma.validation.Validator;
 import midorum.win32.deputy.common.GuardedWin32Adapter;
 import midorum.win32.deputy.common.UserActivityObserver;
-import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.model.IExecutor;
 import midorum.win32.deputy.model.LogLevel;
 import midorum.win32.deputy.model.Scenario;
 import midorum.win32.deputy.model.Settings;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.Configurator;
 
 import java.io.File;
 import java.util.concurrent.*;

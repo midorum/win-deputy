@@ -18,10 +18,6 @@ class StampSeekerTest {
 
     private static final int DEVIATION = 1;
 
-    @BeforeEach
-    void beforeEach() {
-    }
-
     @Test
     void test1Sequential() {
         basicTest("sequential", StampSeeker::perform, getTest1Data());

@@ -1,7 +1,7 @@
 package midorum.win32.deputy.model;
 
 import dma.file.v2.FileUtil;
-import midorum.win32.deputy.common.Either;
+import dma.flow.Either;
 import midorum.win32.deputy.i18n.I18nResourcesProvider;
 
 import java.io.IOException;
@@ -16,7 +16,9 @@ public record Settings(
         boolean listAllWindowsWhenSearchFail,
         LogLevel rootLogLevel,
         LogLevel libLogLevel,
-        I18nResourcesProvider.SupportedLocale locale
+        I18nResourcesProvider.SupportedLocale locale,
+        boolean observeMouseButtons
+
 ) {
 
     private static final String SETTINGS_FILE_NAME = "settings";
@@ -29,6 +31,7 @@ public record Settings(
     private static final String ROOT_LOG_LEVEL_PROPERTY_NAME = "log.root.level";
     private static final String LIB_LOG_LEVEL_PROPERTY_NAME = "log.lib.level";
     private static final String LOCALE_PROPERTY_NAME = "locale";
+    private static final String OBSERVE_MOUSE_BUTTONS_PROPERTY_NAME = "observe.mouse.buttons";
 
     public static Settings defaultSettings() {
         return new Settings(
@@ -40,12 +43,13 @@ public record Settings(
                 false,
                 LogLevel.INFO,
                 LogLevel.INFO,
-                I18nResourcesProvider.DEFAULT_LOCALE
+                I18nResourcesProvider.DEFAULT_LOCALE,
+                true
         );
     }
 
     public static Either<Settings, IOException> loadFromFile() {
-        return Either.value(() -> FileUtil.withText(SETTINGS_FILE_NAME).asReader(reader -> {
+        return Either.valueFrom(() -> FileUtil.withText(SETTINGS_FILE_NAME).asReader(reader -> {
             Properties appProps = new Properties();
             appProps.load(reader);
             return new Settings(
@@ -57,7 +61,8 @@ public record Settings(
                     Boolean.parseBoolean(appProps.getProperty(LIST_ALL_WINDOWS_WHEN_SEARCH_FAIL_PROPERTY_NAME, "false")),
                     LogLevel.valueOf(appProps.getProperty(ROOT_LOG_LEVEL_PROPERTY_NAME, LogLevel.INFO.name())),
                     LogLevel.valueOf(appProps.getProperty(LIB_LOG_LEVEL_PROPERTY_NAME, LogLevel.INFO.name())),
-                    I18nResourcesProvider.SupportedLocale.valueOf(appProps.getProperty(LOCALE_PROPERTY_NAME, I18nResourcesProvider.DEFAULT_LOCALE.name()))
+                    I18nResourcesProvider.SupportedLocale.valueOf(appProps.getProperty(LOCALE_PROPERTY_NAME, I18nResourcesProvider.DEFAULT_LOCALE.name())),
+                    Boolean.parseBoolean(appProps.getProperty(OBSERVE_MOUSE_BUTTONS_PROPERTY_NAME, "true"))
             );
         })).orException();
     }
@@ -74,6 +79,7 @@ public record Settings(
             appProps.setProperty(ROOT_LOG_LEVEL_PROPERTY_NAME, rootLogLevel.name());
             appProps.setProperty(LIB_LOG_LEVEL_PROPERTY_NAME, libLogLevel.name());
             appProps.setProperty(LOCALE_PROPERTY_NAME, locale.name());
+            appProps.setProperty(OBSERVE_MOUSE_BUTTONS_PROPERTY_NAME, Boolean.toString(observeMouseButtons()));
             appProps.store(writer, null);
         });
     }

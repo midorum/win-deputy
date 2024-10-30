@@ -6,11 +6,11 @@ import java.util.concurrent.TimeUnit;
 
 public enum ScenarioDataType {
     /**
-     * задержка между повторениями сценария
+     * Задержка между повторениями сценария
      */
     repeatDelay(List.of(SourceType.positiveIntegerInput), TimeUnit.SECONDS),
     /**
-     * задержка между повторениями сценария с продолжительностью в пределах от 0 до указанного значения
+     * Задержка между повторениями сценария с продолжительностью в пределах от 0 до указанного значения
      */
     randomDelay(List.of(SourceType.positiveIntegerInput), TimeUnit.SECONDS);
 

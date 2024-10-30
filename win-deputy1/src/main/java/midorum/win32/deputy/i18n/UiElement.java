@@ -1,5 +1,6 @@
 package midorum.win32.deputy.i18n;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
@@ -16,6 +17,7 @@ public enum UiElement {
     delayBetweenRunsInSecondsLabel,
     userActivityDelayInSecondsLabel,
     listAllWindowsWhenSearchFailLabel,
+    observeMouseButtonsLabel,
     rootLogLevelLabel,
     libLogLevelLabel,
     languageLabel,
@@ -118,7 +120,7 @@ public enum UiElement {
         if (args == null || args.length == 0) return s;
         String acc = s;
         for (final Object arg : args) {
-            acc = acc.replace("{}", Objects.toString(arg));
+            acc = acc.replaceFirst("\\{}", Objects.toString(arg));
         }
         return acc;
     };

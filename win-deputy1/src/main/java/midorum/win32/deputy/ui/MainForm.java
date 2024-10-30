@@ -1,7 +1,7 @@
 package midorum.win32.deputy.ui;
 
+import dma.flow.Either;
 import midorum.win32.deputy.common.CommonUtil;
-import midorum.win32.deputy.common.Either;
 import midorum.win32.deputy.common.Win32Adapter;
 import midorum.win32.deputy.i18n.I18nResourcesProvider;
 import midorum.win32.deputy.i18n.UiElement;
@@ -109,18 +109,12 @@ public class MainForm implements TaskDispatcher {
     private void loadAndApplySettings() {
         final Settings settings = Settings.loadFromFile().getOrHandleError(e -> {
             uiUtil.logThrowable(e, "cannot load settings from file");
-            uiUtil.logIllegalState(">>> settings loading failed");
             return Settings.defaultSettings();
         });
-        uiUtil.logIllegalState(">>> settings loaded: {}", settings);
         this.settings.set(settings);
-        uiUtil.logIllegalState(">>> settings set");
         LogLevel.setRootLevel(settings.rootLogLevel());
-        uiUtil.logIllegalState(">>> root logger set to {}", settings.rootLogLevel().name());
         LogLevel.setLibLevel(settings.libLogLevel());
-        uiUtil.logIllegalState(">>> lib logger set to {}", settings.libLogLevel().name());
         I18nResourcesProvider.getInstance().setUserLocale(settings.locale());
-        uiUtil.logIllegalState(">>> locale set to {}", settings.locale().name());
     }
 
     public static void main(String[] args) {
@@ -198,8 +192,8 @@ public class MainForm implements TaskDispatcher {
 
     @Override
     public void applySettings() {
-       loadAndApplySettings();
-       showSettings();
+        loadAndApplySettings();
+        showSettings();
     }
 
     @Override

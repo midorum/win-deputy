@@ -1,9 +1,10 @@
 package midorum.win32.deputy.common;
 
 import com.midorum.win32api.facade.*;
-import com.midorum.win32api.facade.Either;
+import com.midorum.win32api.facade.exception.Win32ApiException;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
+import dma.flow.Either;
 
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -25,7 +26,7 @@ public class Win32Adapter {
         return win32System.getScreenShotMaker().takeRectangle(rectangle);
     }
 
-    public Either<MsLcid[]> getAvailableKeyboardLayouts() {
+    public Either<MsLcid[], Win32ApiException> getAvailableKeyboardLayouts() {
         return win32System.getAvailableKeyboardLayouts();
     }
 
@@ -33,7 +34,7 @@ public class Win32Adapter {
         return win32System.getWindowByPoint(point);
     }
 
-    public Either<List<IProcess>> listProcessesWithName(final String name) {
+    public Either<List<IProcess>, Win32ApiException> listProcessesWithName(final String name) {
         return win32System.listProcessesWithName(name);
     }
 

@@ -1,14 +1,10 @@
 package midorum.win32.deputy.i18n;
 
-import dma.file.v2.FileUtil;
-import midorum.win32.deputy.common.Either;
+import dma.flow.Either;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Objects;
@@ -30,12 +26,10 @@ public class I18nResourcesProvider {
     private final AtomicReference<Properties> userLocaleValues = new AtomicReference<>();
 
     private I18nResourcesProvider() {
-        logger.error(">>> I18nResourcesProvider init");
         defaultLocaleValues = loadFromFile(DEFAULT_LOCALE).getOrHandleError(e -> {
             logger.error("cannot load default locale", e);
             return new Properties();
         });
-        logger.error(">>> I18nResourcesProvider default locale loaded");
         userLocaleValues.set(defaultLocaleValues);
     }
 
@@ -71,7 +65,7 @@ public class I18nResourcesProvider {
     }
 
     private Either<Properties, IOException> loadFromFile(final SupportedLocale locale) {
-        return Either.value(() -> {
+        return Either.valueFrom(() -> {
             final String resourcePath = "/l10n/" + locale.name();
             try (final InputStream is = getClass().getResourceAsStream(resourcePath);
                  final Reader reader = new InputStreamReader(

@@ -87,6 +87,7 @@ class RoutineScenarioProcessor implements Runnable {
             }
             final List<Activity> activities = scenario.getActivities();
             int wasPerformed = -1;
+            boolean wasRepeatableActivity = false;
             for (int i = 0; i < activities.size(); i++) {
                 final Activity activity = activities.get(i);
                 if (activity.isIgnore()) {
@@ -132,36 +133,21 @@ class RoutineScenarioProcessor implements Runnable {
                             CommonUtil.localTimeString(waitUntilValue));
                 });
                 wasPerformed = i;
+                wasRepeatableActivity = activity.isRepeatable();
                 break;
             }
             cache.invalidate();
             if (wasPerformed < 0) {
                 throw makeShotAndGetException(UiElement.noOneActivityWasPerformed);
             }
-            if (wasPerformed < activities.size() - 1) {
-                logger.info("routine task done");
-                return;
-            }
-            if (scenario.getType() == ScenarioType.oneTime) {
+            final boolean wasLastActivity = wasPerformed == activities.size() - 1;
+            if (scenario.getType() == ScenarioType.oneTime && wasLastActivity) {
                 throw new UserMessageException(UiElement.scenarioDone, scenario.getTitle());
             }
-            if (scenario.getType() == ScenarioType.repeatable) {
-                final Map<ScenarioDataType, String> data = scenario.getData().orElse(Map.of());
-                final String repeatDelayValue = data.get(ScenarioDataType.repeatDelay);
-                if (repeatDelayValue != null) {
-                    final TimeUnit timeUnit = ScenarioDataType.repeatDelay.getUnit().orElse(DefaultSettings.DEFAULT_TIME_UNIT);
-                    logger.info("scenario marked as repeatable with {} {} delay - perform delay",
-                            repeatDelayValue, timeUnit.name().toLowerCase());
-                    timeUnit.sleep(Long.parseLong(repeatDelayValue));
-                }
-                final String randomDelayData = data.get(ScenarioDataType.randomDelay);
-                if (randomDelayData != null) {
-                    new Delay(1).randomSleep(0, Long.parseLong(randomDelayData),
-                            ScenarioDataType.randomDelay.getUnit().orElse(DefaultSettings.DEFAULT_TIME_UNIT),
-                            duration -> logger.info("scenario asked random delay - routine task delayed on {}",
-                                    new DurationFormatter(duration).toStringWithoutZeroParts()));
-                }
+            if (scenario.getType() == ScenarioType.repeatable && (wasRepeatableActivity || wasLastActivity)) {
+                performRepeatableDelay();
             }
+            logger.info("routine task done");
         } catch (UserActionDetectedException e) {
             lastUserKeyEventTime.set(userActivityObserver.getLastUserKeyEventTime());
             logger.warn("routine interrupted cause of user activity");
@@ -170,6 +156,24 @@ class RoutineScenarioProcessor implements Runnable {
             throw new ControlledInterruptedException(e);
         } catch (Win32ApiException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private void performRepeatableDelay() throws InterruptedException {
+        final Map<ScenarioDataType, String> data = scenario.getData().orElse(Map.of());
+        final String repeatDelayValue = data.get(ScenarioDataType.repeatDelay);
+        if (repeatDelayValue != null) {
+            final TimeUnit timeUnit = ScenarioDataType.repeatDelay.getUnit().orElse(DefaultSettings.DEFAULT_TIME_UNIT);
+            logger.info("scenario marked as repeatable with {} {} delay - perform delay",
+                    repeatDelayValue, timeUnit.name().toLowerCase());
+            timeUnit.sleep(Long.parseLong(repeatDelayValue));
+        }
+        final String randomDelayData = data.get(ScenarioDataType.randomDelay);
+        if (randomDelayData != null) {
+            new Delay(1).randomSleep(0, Long.parseLong(randomDelayData),
+                    ScenarioDataType.randomDelay.getUnit().orElse(DefaultSettings.DEFAULT_TIME_UNIT),
+                    duration -> logger.info("scenario asked random delay - routine task delayed on {}",
+                            new DurationFormatter(duration).toStringWithoutZeroParts()));
         }
     }
 
@@ -201,13 +205,13 @@ class RoutineScenarioProcessor implements Runnable {
         return result;
     }
 
-    private boolean verifyWaitingChecks(final Waiting waiting) throws InterruptedException {
+    private boolean verifyWaitingChecks(final Waiting waiting) {
         if (waiting == null) return true;
         logger.info("verifying waiting \"{}\"", waiting.getDescription());
         return verifyChecks(waiting.getChecks());
     }
 
-    private boolean verifyChecks(final List<Check> checks) throws InterruptedException {
+    private boolean verifyChecks(final List<Check> checks) {
         // using vanilla 'for' to ensure break verifying at first false result
         boolean result = true;
         for (Check check : checks) {

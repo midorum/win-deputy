@@ -10,6 +10,7 @@ initialDelayInSecondsLabel=Initial delay, seconds:
 delayBetweenRunsInSecondsLabel=Delay between runs, seconds:
 userActivityDelayInSecondsLabel=User activity delay, seconds:
 listAllWindowsWhenSearchFailLabel=List all windows when search fail:
+observeMouseButtonsLabel=Observe user activity via mouse buttons (require restart):
 rootLogLevelLabel=Root log level:
 libLogLevelLabel=Lib log level:
 languageLabel=Language:

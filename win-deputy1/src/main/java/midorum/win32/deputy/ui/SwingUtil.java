@@ -1,7 +1,6 @@
 package midorum.win32.deputy.ui;
 
 import java.awt.*;
-import java.util.regex.Pattern;
 
 final class SwingUtil {
 

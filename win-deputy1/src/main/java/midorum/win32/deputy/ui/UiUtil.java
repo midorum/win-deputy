@@ -2,6 +2,7 @@ package midorum.win32.deputy.ui;
 
 import com.midorum.win32api.facade.IProcess;
 import com.midorum.win32api.facade.IWindow;
+import com.midorum.win32api.hook.EventProcessingResult;
 import com.midorum.win32api.hook.MouseHookHelper;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.IWinUser;
@@ -119,14 +120,15 @@ class UiUtil {
     }
 
     public void pickAbsolutePoint(final Consumer<PointInt> resultConsumer) {
-        MouseHookHelper.getInstance().setGlobalHookForKey(IWinUser.WM_LBUTTONDOWN,
+        MouseHookHelper.getInstance().setGlobalHook("pickAbsolutePoint",
+                IWinUser.WM_LBUTTONDOWN,
                 (mouseEvent) -> {
                     resultConsumer.accept(mouseEvent.point());
-                    return true;
+                    return EventProcessingResult.deleteHook;
                 },
                 throwable -> {
                     reportThrowable(throwable, UiElement.cannotPickMousePointerPosition);
-                    return true;
+                    return EventProcessingResult.deleteHook;
                 });
     }
 

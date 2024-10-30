@@ -10,6 +10,7 @@ initialDelayInSecondsLabel=Начальная задержка, секунд:
 delayBetweenRunsInSecondsLabel=Задержка между прогонами сценария, секунд:
 userActivityDelayInSecondsLabel=Задержка в случае активности пользователя, секунд:
 listAllWindowsWhenSearchFailLabel=Перечислять все окна если поиск провалился:
+observeMouseButtonsLabel=Отслеживать активность пользователя по кнопкам мыши (требует перезапуска):
 rootLogLevelLabel=Уровень логирования приложения:
 libLogLevelLabel=Уровень логирования библиотек:
 languageLabel=Язык:

@@ -1,7 +1,7 @@
 package midorum.win32.deputy.ui;
 
 import dma.file.v2.FileUtil;
-import midorum.win32.deputy.common.Either;
+import dma.flow.Either;
 import midorum.win32.deputy.common.Win32Adapter;
 
 import java.io.File;
@@ -46,7 +46,7 @@ class State {
     }
 
     public static Either<State, IOException> loadState(final UiUtil utilities) {
-        return Either.value(() -> FileUtil.withText(STATE_FILE_NAME).asReader(reader -> {
+        return Either.valueFrom(() -> FileUtil.withText(STATE_FILE_NAME).asReader(reader -> {
             Properties appProps = new Properties();
             appProps.load(reader);
             final State state = new State(utilities);
