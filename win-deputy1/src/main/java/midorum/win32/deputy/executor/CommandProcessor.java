@@ -2,6 +2,7 @@ package midorum.win32.deputy.executor;
 
 import com.midorum.win32api.facade.*;
 import com.midorum.win32api.facade.exception.Win32ApiException;
+import com.midorum.win32api.struct.MouseEventConsumer;
 import com.midorum.win32api.struct.PointInt;
 import com.midorum.win32api.win32.MsLcid;
 import dma.flow.Either;
@@ -23,6 +24,7 @@ public class CommandProcessor {
     private final Win32Cache cache;
     private final UserActivityObserver userActivityObserver;
     private final GuardedWin32Adapter win32Adapter;
+    private final MouseEventConsumer mouseEventConsumer;
 
     public CommandProcessor(final Win32Cache cache,
                             final UserActivityObserver userActivityObserver,
@@ -30,6 +32,10 @@ public class CommandProcessor {
         this.cache = cache;
         this.userActivityObserver = userActivityObserver;
         this.win32Adapter = win32Adapter;
+        this.mouseEventConsumer = (event, _) -> {
+            logger.trace("[mouse] put event type to observer: event:{}", event);
+            if (userActivityObserver.checkUserActivityOrPutSelfMouseEvent(event)) throw new UserActionDetectedException();
+        };
     }
 
     public void performCommand(final Command command) throws Win32ApiException, InterruptedException {
@@ -53,25 +59,25 @@ public class CommandProcessor {
     private void mouseLeftClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
         final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
-        mouse.leftClick();
+        mouse.leftClick(mouseEventConsumer);
     }
 
     private void mouseDoubleLeftClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
         final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
-        mouse.leftClick().leftClick();
+        mouse.leftClick(mouseEventConsumer).leftClick(mouseEventConsumer);
     }
 
     private void mouseRightClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
         final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
-        mouse.rightClick();
+        mouse.rightClick(mouseEventConsumer);
     }
 
     private void mouseDoubleRightClick(final Map<CommandDataType, String> data) throws Win32ApiException, InterruptedException {
         final IMouse mouse = win32Adapter.getScreenMouse();
         mouse.move(getMousePosition(data));
-        mouse.rightClick().rightClick();
+        mouse.rightClick(mouseEventConsumer).rightClick(mouseEventConsumer);
     }
 
     private PointInt getMousePosition(final Map<CommandDataType, String> data) {
@@ -107,9 +113,9 @@ public class CommandProcessor {
             window.setKeyboardLayout(MsLcid.fromLayoutName(keyboardLayoutData)
                     .orElseThrow(() -> new UserMessageException(UiElement.cannotParseKeyboardLayout, keyboardLayoutData)));
         }
-        window.getKeyboard().type(keyboardTypeTextData, (order, virtualCode) -> {
-            logger.trace("[typing] put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
-            if (userActivityObserver.wasUserActivity(virtualCode)) throw new UserActionDetectedException();
+        window.getKeyboard().type(keyboardTypeTextData, (event, virtualCode) -> {
+            logger.trace("[typing] put virtual code to observer: event:{} virtualCode:{}", event, virtualCode);
+            if (userActivityObserver.checkUserActivityOrPutSelfKeyCode(virtualCode)) throw new UserActionDetectedException();
         });
     }
 
@@ -121,9 +127,9 @@ public class CommandProcessor {
         final long delay = keyboardKeyStrokeDelayValue != null ? Long.parseLong(keyboardKeyStrokeDelayValue) : 0L;
         final HotKey hotKey = HotKey.valueOf(keyboardKeyStrokeData);
         final IWindow window = getWindow(data.get(CommandDataType.windowTitle), data.get(CommandDataType.windowClassName));
-        window.getKeyboard().enterHotKey(hotKey, delay, (order, virtualCode) -> {
-            logger.trace("[hotkey] put virtual code to observer: order:{} virtualCode:{}", order, virtualCode);
-            if (userActivityObserver.wasUserActivity(virtualCode)) throw new UserActionDetectedException();
+        window.getKeyboard().enterHotKey(hotKey, delay, (event, virtualCode) -> {
+            logger.trace("[hotkey] put virtual code to observer: event:{} virtualCode:{}", event, virtualCode);
+            if (userActivityObserver.checkUserActivityOrPutSelfKeyCode(virtualCode)) throw new UserActionDetectedException();
         });
     }
 

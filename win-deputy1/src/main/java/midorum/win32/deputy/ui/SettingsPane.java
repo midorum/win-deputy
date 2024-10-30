@@ -24,6 +24,7 @@ class SettingsPane extends JPanel {
     private JComboBox<LogLevel> rootLogLevelComboBox;
     private JComboBox<LogLevel> libLogLevelComboBox;
     private JComboBox<I18nResourcesProvider.SupportedLocale> languageComboBox;
+    private JComboBox<String> observeMouseButtonsComboBox;
 
     SettingsPane(final TaskDispatcher taskDispatcher, final UiUtil uiUtil) {
         this.taskDispatcher = taskDispatcher;
@@ -50,7 +51,8 @@ class SettingsPane extends JPanel {
                 createListAllWindowsWhenSearchFailPane(settings.listAllWindowsWhenSearchFail()),
                 createRootLogLevelPane(settings.rootLogLevel()),
                 createLibLogLevelPane(settings.libLogLevel()),
-                createLanguagePane(settings.locale())
+                createLanguagePane(settings.locale()),
+                createObserveMouseButtonsPane(settings.observeMouseButtons())
         );
         return panel;
     }
@@ -149,6 +151,17 @@ class SettingsPane extends JPanel {
         return panel;
     }
 
+    private JPanel createObserveMouseButtonsPane(final boolean value) {
+        final JPanel panel = new JPanel();
+        observeMouseButtonsComboBox = new JComboBox<>(new String[]{Boolean.TRUE.toString(), Boolean.FALSE.toString()});
+        observeMouseButtonsComboBox.setSelectedItem(Boolean.toString(value));
+        SwingUtil.putComponentsToHorizontalGrid(panel, 1,
+                new JLabel(UiElement.observeMouseButtonsLabel.forUserLocale()),
+                observeMouseButtonsComboBox
+        );
+        return panel;
+    }
+
     private JPanel createButtonPane() {
         final JPanel buttonPane = new JPanel();
         buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
@@ -172,7 +185,8 @@ class SettingsPane extends JPanel {
                         Boolean.parseBoolean((String) listAllWindowsWhenSearchFailComboBox.getSelectedItem()),
                         getSelectedRootLogLevel(),
                         getSelectedLibLogLevel(),
-                        getSelectedLocale()
+                        getSelectedLocale(),
+                        Boolean.parseBoolean((String) observeMouseButtonsComboBox.getSelectedItem())
                 );
                 settings.storeToFile();
                 uiUtil.getLogger().info("application settings updated: {}", settings);

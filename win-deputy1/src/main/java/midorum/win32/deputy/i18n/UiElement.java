@@ -17,6 +17,7 @@ public enum UiElement {
     delayBetweenRunsInSecondsLabel,
     userActivityDelayInSecondsLabel,
     listAllWindowsWhenSearchFailLabel,
+    observeMouseButtonsLabel,
     rootLogLevelLabel,
     libLogLevelLabel,
     languageLabel,

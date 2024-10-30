@@ -1,12 +1,13 @@
 package midorum.win32.deputy.common;
 
 import com.midorum.win32api.facade.HotKey;
-import com.midorum.win32api.hook.GlobalKeyHook;
-import com.midorum.win32api.hook.KeyHookHelper;
+import com.midorum.win32api.hook.*;
+import com.midorum.win32api.win32.Win32Event;
 import com.midorum.win32api.win32.Win32VirtualKey;
 import dma.function.VoidAction;
 import dma.validation.Validator;
 import midorum.win32.deputy.model.IExecutor;
+import midorum.win32.deputy.model.Settings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,12 +24,18 @@ public class UserActivityObserver {
     private final ConcurrentLinkedQueue<Integer> queue;
     private final AtomicLong lastUserKeyEventTime;
     private volatile boolean observationEnabled = false;
+    private final boolean observeMouse;
     private final ConcurrentHashMap<HotKey, Map<String, VoidAction>> keyEventListeners;
 
     private UserActivityObserver() {
         queue = new ConcurrentLinkedQueue<>();
         lastUserKeyEventTime = new AtomicLong();
         keyEventListeners = new ConcurrentHashMap<>();
+        final Settings settings = loadSettings();
+        if (settings.observeMouseButtons()) {
+            setMouseHook();
+            observeMouse = true;
+        } else observeMouse = false;
         setKeyHook();
     }
 
@@ -36,27 +43,34 @@ public class UserActivityObserver {
         return INSTANCE;
     }
 
+    private Settings loadSettings() {
+        return Settings.loadFromFile().getOrHandleError(e -> {
+            logger.error("cannot load settings from file", e);
+            return Settings.defaultSettings();
+        });
+    }
+
     private void setKeyHook() {
         final KeyHookHelper keyHookHelper = KeyHookHelper.getInstance();
-        final String hookId = Long.toString(System.currentTimeMillis());
+        final String hookId = "observer.hook.key_" + System.currentTimeMillis();
         keyHookHelper.setGlobalHook(hookId,
-                keyEvent -> {
+                event -> {
                     if (observationEnabled) {
-                        logger.trace(() -> "GlobalKeyHook[" + hookId + "] keyEvent: " + keyEvent
-                                + " " + keyEvent.toPrettyString());
-                        checkKeyEvent(keyEvent);
+                        logger.trace(() -> "[" + hookId + "] event: " + event
+                                + " " + event.toPrettyString());
+                        checkKeyEvent(event);
                     }
-                    if (keyEvent.isKeyUp()) {
-                        final Map<String, VoidAction> actions = keyEventListeners.get(HotKey.fromKeyEvent(keyEvent));
+                    if (event.isKeyUp()) {
+                        final Map<String, VoidAction> actions = keyEventListeners.get(HotKey.fromKeyEvent(event));
                         if (actions != null) {
                             actions.forEach((_, action) -> action.perform());
                         }
                     }
-                    return KeyHookHelper.Result.propagateEvent;
+                    return EventProcessingResult.propagateEvent;
                 },
                 throwable -> {
-                    logger.error(() -> "GlobalKeyHook[" + hookId + "] error", throwable);
-                    return KeyHookHelper.Result.keepHook;
+                    logger.error(() -> "[" + hookId + "] error", throwable);
+                    return EventProcessingResult.keepHook;
                 }
         );
     }
@@ -84,6 +98,37 @@ public class UserActivityObserver {
                 : eventCode;
     }
 
+    private void setMouseHook() {
+        final MouseHookHelper mouseHookHelper = MouseHookHelper.getInstance();
+        final String hookId = "observer.hook.mouse_" + System.currentTimeMillis();
+        mouseHookHelper.setGlobalHookOnKeys(hookId,
+                event -> {
+                    if (observationEnabled) {
+                        logger.trace(() -> "[" + hookId + "] event: " + event
+                                + " " + event.toPrettyString());
+                        checkMouseEvent(event);
+                    }
+                    return EventProcessingResult.propagateEvent;
+                },
+                throwable -> {
+                    logger.error(() -> "[" + hookId + "] error", throwable);
+                    return EventProcessingResult.keepHook;
+                }
+        );
+    }
+
+    private void checkMouseEvent(final GlobalMouseHook.MouseEvent event) {
+        final Integer poll = queue.poll();
+        final int eventType = event.eventType();
+        if (poll == null || eventType != poll) {
+            lastUserKeyEventTime.set(System.currentTimeMillis());
+            logger.trace(() -> "polled self event type [" + poll
+                    + "] != event type [" + eventType
+                    + "]: set lastUserKeyEventTime: " + lastUserKeyEventTime
+                    + " [" + CommonUtil.localTimeString(lastUserKeyEventTime.get()) + "]");
+        }
+    }
+
     public void enableObservation() {
         this.observationEnabled = true;
         logger.info("user observation has been enabled");
@@ -109,13 +154,21 @@ public class UserActivityObserver {
         return lastUserKeyEventTime.get() > 0;
     }
 
-    public boolean wasUserActivity(final int virtualCode) {
-        final boolean wasUserActivity = wasUserActivity();
-        if (!wasUserActivity) {
-            queue.offer(virtualCode);
-            return false;
-        }
-        return true;
+    public boolean checkUserActivityOrPutSelfKeyCode(final int virtualCode) {
+        if (wasUserActivity()) return true;
+        queue.offer(virtualCode);
+        return false;
+    }
+
+    public boolean checkUserActivityOrPutSelfEvent(final Win32Event selfEvent) {
+        if (wasUserActivity()) return true;
+        queue.offer(selfEvent.getMessage());
+        return false;
+    }
+
+    public boolean checkUserActivityOrPutSelfMouseEvent(final Win32Event selfEvent) {
+        if (!observeMouse) return false;
+        return checkUserActivityOrPutSelfEvent(selfEvent);
     }
 
     public long getLastUserKeyEventTime() {
